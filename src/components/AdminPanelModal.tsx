@@ -59,6 +59,23 @@ export default function AdminPanelModal({
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
 
+  const handleCloseModal = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('4u_pro_admin_logged_in');
+    setPasswordInput('');
+    setPasswordError('');
+    window.dispatchEvent(new Event('admin-login-changed'));
+    onClose();
+  };
+
+  // Absolute log-out safety on unmount:
+  useEffect(() => {
+    return () => {
+      localStorage.removeItem('4u_pro_admin_logged_in');
+      window.dispatchEvent(new Event('admin-login-changed'));
+    };
+  }, []);
+
   // Load orders initially and when active tab changes
   useEffect(() => {
     if (isOpen) {
@@ -1042,7 +1059,7 @@ export default function AdminPanelModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.8 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={handleCloseModal}
         className="fixed inset-0 bg-neutral-950/80 backdrop-blur-sm"
       />
 
@@ -1060,7 +1077,7 @@ export default function AdminPanelModal({
       >
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleCloseModal}
           className={`absolute top-4 right-4 rtl:left-4 rtl:right-auto p-2 rounded-lg border transition-all hover:scale-105 cursor-pointer ${
             isDarkMode 
               ? 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-600' 
@@ -1180,12 +1197,7 @@ export default function AdminPanelModal({
               {/* Premium Red-Accented Sign Out Button */}
               <button
                 type="button"
-                onClick={() => {
-                  setIsAuthenticated(false);
-                  localStorage.removeItem('4u_pro_admin_logged_in');
-                  window.dispatchEvent(new Event('admin-login-changed'));
-                  onClose();
-                }}
+                onClick={handleCloseModal}
                 className="px-4 py-3 font-orbitron font-bold text-[10px] sm:text-xs tracking-wider border-b-2 border-transparent text-red-400 hover:text-red-300 hover:bg-red-950/15 transition-all flex items-center gap-x-2 cursor-pointer ml-auto rtl:mr-auto rtl:ml-0"
               >
                 <Lock className="w-3.5 h-3.5" />
