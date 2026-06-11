@@ -31,3 +31,17 @@ export interface CartItem {
   quantity: number;
   customSpec?: string;
 }
+
+export interface Order {
+  id: string; // e.g. TX-XXXXX
+  invoiceNumber?: string; // e.g. INV-1001 for sequential reference
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  customerAddress: string;
+  date: string;
+  items: CartItem[];
+  totalPrice: number | string;
+  status: 'pending' | 'paid' | 'delivered';
+  currency: string;
+}

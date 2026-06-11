@@ -20,10 +20,77 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [checkoutStep, setCheckoutStep] = useState<'idle' | 'processing' | 'success'>('idle');
+  const [checkoutStep, setCheckoutStep] = useState<'idle' | 'form' | 'processing' | 'success'>('idle');
   const [txId, setTxId] = useState('');
 
+  // Customer checkout inputs
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
+
   const t = translations[lang];
+
+  const checkoutT = {
+    en: {
+      customerDetails: 'Delivery & Customer Details',
+      name: 'Full Name',
+      phone: 'Phone Number',
+      email: 'Email Address (Optional)',
+      address: 'Delivery Address',
+      backToCart: 'Back to Cart',
+      confirmPurchase: 'Confirm Order & Submit',
+      nameRequired: 'Name and Phone are required for delivery pairing.',
+      addressPlaceholder: 'Street details, City, Egypt',
+      phonePlaceholder: '01xxxxxxxxx',
+    },
+    ar: {
+      customerDetails: 'تفاصيل المستلم وعنوان التوصيل',
+      name: 'الاسم الكامل المعتمد',
+      phone: 'رقم هاتف الاتصال للعميل',
+      email: 'البريد الإلكتروني (اختياري)',
+      address: 'عنوان شحن وتسليم المنتج',
+      backToCart: 'العودة لعربة التسوق',
+      confirmPurchase: 'تأكيد وحجز الطلب للإنتاج',
+      nameRequired: 'يرجى إدخال الاسم ورقم الهاتف على الأقل لتسجيل وحجز طلبك.',
+      addressPlaceholder: 'الشارع، المنطقة، المحافظة، مصر',
+      phonePlaceholder: '01xxxxxxxxx',
+    }
+  }[lang];
+
+  // Creates the persistent order in localStorage so the admin panel can view it!
+  const createNewOrder = (transactionId: string) => {
+    const currentOrdersStr = localStorage.getItem('4u_pro_orders_v1');
+    let currentOrders: any[] = [];
+    if (currentOrdersStr) {
+      try {
+        currentOrders = JSON.parse(currentOrdersStr);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    const nextInvoiceSeq = 1000 + currentOrders.length + 1;
+    const invoiceNumber = `INV-${nextInvoiceSeq}`;
+
+    const newOrder = {
+      id: transactionId,
+      invoiceNumber: invoiceNumber,
+      customerName: customerName.trim() || (lang === 'ar' ? 'عميل كودي' : 'Standard Node User'),
+      customerPhone: customerPhone.trim() || '---',
+      customerEmail: customerEmail.trim() || '---',
+      customerAddress: customerAddress.trim() || (lang === 'ar' ? 'استلام من التوكيل الرئيسي' : 'Primary Lab Pickup'),
+      date: new Date().toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US'),
+      items: cart,
+      totalPrice: cartTotal,
+      status: 'pending', // 'pending' | 'paid' | 'delivered'
+      currency: cart[0]?.product.currency || 'USD'
+    };
+
+    currentOrders.unshift(newOrder);
+    localStorage.setItem('4u_pro_orders_v1', JSON.stringify(currentOrders));
+  };
 
   // Track scroll activity
   useEffect(() => {
@@ -41,11 +108,28 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
 
   // Set transactions ID on checkout
   const handleProcessCheckout = () => {
-    setCheckoutStep('processing');
-    setTimeout(() => {
-      setTxId(`TX-${Math.floor(100000 + Math.random() * 90000).toString(16).toUpperCase()}`);
-      setCheckoutStep('success');
-    }, 2500);
+    if (checkoutStep === 'idle') {
+      // Transition to info collection form
+      setCheckoutStep('form');
+      return;
+    }
+
+    if (checkoutStep === 'form') {
+      if (!customerName.trim() || !customerPhone.trim()) {
+        setCheckoutError(checkoutT.nameRequired);
+        return;
+      }
+      
+      setCheckoutError('');
+      setCheckoutStep('processing');
+      const generatedTxId = `TX-${Math.floor(100000 + Math.random() * 90000).toString(16).toUpperCase()}`;
+      
+      setTimeout(() => {
+        createNewOrder(generatedTxId);
+        setTxId(generatedTxId);
+        setCheckoutStep('success');
+      }, 2500);
+    }
   };
 
   const updateQuantity = (index: number, delta: number) => {
@@ -367,8 +451,104 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
                         ))}
                       </div>
                     )
+                  ) : checkoutStep === 'form' ? (
+                    <div className="space-y-5 text-left rtl:text-right">
+                      <div className="pb-2 border-b border-neutral-800/40 flex items-center justify-between">
+                        <h4 className="font-orbitron font-extrabold text-sm text-neon-cyan uppercase tracking-wide">
+                          {checkoutT.customerDetails}
+                        </h4>
+                        <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
+                      </div>
+
+                      {checkoutError && (
+                        <div className="p-3 text-[11px] font-mono bg-red-950/20 border border-red-500/30 text-rose-400 rounded-lg">
+                          {checkoutError}
+                        </div>
+                      )}
+
+                      <div className="space-y-3.5">
+                        {/* Name Input */}
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">
+                            {checkoutT.name} <span className="text-neon-pink">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={customerName}
+                            onChange={(e) => setCustomerName(e.target.value)}
+                            placeholder={lang === 'ar' ? 'الاسم الثلاثي المعتمد' : 'Full Registered Name'}
+                            className={`w-full px-4 py-2.5 rounded-xl border text-xs outline-none transition-all ${
+                              isDarkMode ? 'bg-[#0E0F14] border-neutral-800 text-white focus:border-neon-cyan/40' : 'bg-neutral-50 border-neutral-300 text-black focus:border-neon-cyan'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Phone Input */}
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">
+                            {checkoutT.phone} <span className="text-neon-pink">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={customerPhone}
+                            onChange={(e) => setCustomerPhone(e.target.value)}
+                            placeholder={checkoutT.phonePlaceholder}
+                            className={`w-full px-4 py-2.5 rounded-xl border text-xs outline-none font-mono tracking-wide transition-all ${
+                              isDarkMode ? 'bg-[#0E0F14] border-neutral-800 text-white focus:border-neon-cyan/40' : 'bg-neutral-50 border-neutral-300 text-black focus:border-neon-cyan'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Email Input */}
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">
+                            {checkoutT.email}
+                          </label>
+                          <input
+                            type="email"
+                            value={customerEmail}
+                            onChange={(e) => setCustomerEmail(e.target.value)}
+                            placeholder="user@neon-node.com"
+                            className={`w-full px-4 py-2.5 rounded-xl border text-xs outline-none font-mono transition-all ${
+                              isDarkMode ? 'bg-[#0E0F14] border-neutral-800 text-white focus:border-neon-cyan/40' : 'bg-neutral-50 border-neutral-300 text-black focus:border-neon-cyan'
+                            }`}
+                          />
+                        </div>
+
+                        {/* Address Input */}
+                        <div className="space-y-1">
+                          <label className="block text-[9px] font-mono font-bold text-neutral-400 uppercase tracking-widest">
+                            {checkoutT.address}
+                          </label>
+                          <textarea
+                            value={customerAddress}
+                            onChange={(e) => setCustomerAddress(e.target.value)}
+                            placeholder={checkoutT.addressPlaceholder}
+                            rows={2}
+                            className={`w-full px-4 py-2.5 rounded-xl border text-xs outline-none transition-all resize-none ${
+                              isDarkMode ? 'bg-[#0E0F14] border-neutral-800 text-white focus:border-neon-cyan/40' : 'bg-neutral-50 border-neutral-300 text-black focus:border-neon-cyan'
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Go back action */}
+                      <button
+                        onClick={() => {
+                          setCheckoutStep('idle');
+                          setCheckoutError('');
+                        }}
+                        className={`text-[9px] font-mono uppercase tracking-widest flex items-center gap-x-1.5 transition-colors cursor-pointer mt-4 py-1 px-2.5 rounded border ${
+                          isDarkMode ? 'border-neutral-800 hover:border-neutral-700 bg-neutral-900/30 text-neutral-400 hover:text-white' : 'border-neutral-300 hover:border-neutral-400 bg-neutral-100 text-neutral-700'
+                        }`}
+                      >
+                        {lang === 'ar' ? '← العودة لسلة المشتريات' : '← Back to Cart'}
+                      </button>
+                    </div>
                   ) : checkoutStep === 'processing' ? (
-                    <div className="h-full flex flex-col items-center justify-center space-y-6 text-center">
+                    <div className="h-full flex flex-col items-center justify-center space-y-6 text-center animate-fade-in">
                       <div className="relative">
                         <div className="w-16 h-16 rounded-full border-4 border-neutral-800 border-t-neon-cyan animate-spin" />
                         <Sparkles className="w-6 h-6 text-neon-purple absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-ping" />
@@ -383,7 +563,7 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
                       </div>
                     </div>
                   ) : (
-                    <div className="h-full flex flex-col items-center justify-center space-y-6 text-center">
+                    <div className="h-full flex flex-col items-center justify-center space-y-6 text-center animate-fade-in">
                       <div className="p-4 rounded-full bg-neon-cyan/10 border border-neon-cyan/40">
                         <CheckCircle className="w-14 h-14 text-neon-cyan animate-bounce" />
                       </div>
@@ -404,6 +584,10 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
                         <div className="flex justify-between">
                           <span>SIGN TXID:</span>
                           <span className="text-white font-bold">{txId}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>CUSTOMER:</span>
+                          <span className="text-white truncate max-w-[140px]">{customerName}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>{t.navbar.gateway}:</span>
@@ -434,7 +618,7 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
                 </div>
 
                 {/* Footer Controls */}
-                {cart.length > 0 && checkoutStep === 'idle' && (
+                {cart.length > 0 && (checkoutStep === 'idle' || checkoutStep === 'form') && (
                   <div className={`p-6 border-t ${isDarkMode ? 'border-neutral-800 bg-neutral-900/10' : 'border-neutral-200 bg-neutral-50'} space-y-4`}>
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-neutral-400 font-sans">
@@ -458,7 +642,9 @@ export default function Navbar({ cart, setCart, isDarkMode, toggleTheme, onOpenC
                       className="w-full py-4 rounded-xl font-orbitron font-extrabold text-sm tracking-wider text-black bg-gradient-to-r from-neon-cyan via-spark to-neon-purple hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center space-x-2 cursor-pointer"
                       style={{ backgroundColor: '#00F0FF' }}
                     >
-                      <span className="text-black">{t.navbar.secureOrder}</span>
+                      <span className="text-black">
+                        {checkoutStep === 'idle' ? t.navbar.secureOrder : checkoutT.confirmPurchase}
+                      </span>
                       <ArrowRight className="w-4 h-4 text-black animate-pulse" />
                     </button>
                   </div>

@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Lock, ShieldCheck, Key, Settings, Plus, Trash2, 
-  Sparkles, RefreshCw, Upload, Eye, EyeOff, LayoutGrid, CheckCircle
+  Sparkles, RefreshCw, Upload, Eye, EyeOff, LayoutGrid, CheckCircle,
+  ClipboardList, Printer, Coins, Truck, Search
 } from 'lucide-react';
 import { Product } from '../types';
 import { Language } from '../translations';
@@ -48,8 +49,204 @@ export default function AdminPanelModal({
   const [passwordError, setPasswordError] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  // Active Tab: 'add' or 'manage' or 'password'
-  const [activeTab, setActiveTab] = useState<'add' | 'manage' | 'password'>('add');
+  // Active Tab: 'add' or 'manage' or 'password' or 'orders'
+  const [activeTab, setActiveTab] = useState<'add' | 'manage' | 'password' | 'orders'>('add');
+
+  // Order Tracking states
+  const [ordersList, setOrdersList] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
+
+  // Load orders initially and when active tab changes
+  useEffect(() => {
+    if (isOpen) {
+      const stored = localStorage.getItem('4u_pro_orders_v1');
+      if (stored) {
+        try {
+          setOrdersList(JSON.parse(stored));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+  }, [isOpen, activeTab]);
+
+  const refreshOrdersList = () => {
+    const stored = localStorage.getItem('4u_pro_orders_v1');
+    if (stored) {
+      try {
+        setOrdersList(JSON.parse(stored));
+      } catch (e) {
+        console.error(e);
+      }
+    } else {
+      setOrdersList([]);
+    }
+  };
+
+  const handleUpdateOrderStatus = (orderId: string, newStatus: 'paid' | 'delivered') => {
+    const updated = ordersList.map(o => {
+      if (o.id === orderId) {
+        return { ...o, status: newStatus };
+      }
+      return o;
+    });
+    setOrdersList(updated);
+    localStorage.setItem('4u_pro_orders_v1', JSON.stringify(updated));
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+    }
+  };
+
+  const handlePrint = () => {
+    if (!selectedOrder) return;
+    
+    // Open in a new clean window to print beautifully
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(`
+        <html>
+          <head>
+            <title>Invoice - ${selectedOrder.id}</title>
+            <style>
+              body {
+                font-family: 'Courier New', Courier, monospace, Arial, sans-serif;
+                padding: 30px;
+                background-color: #fff;
+                color: #000;
+                direction: ${lang === 'ar' ? 'rtl' : 'ltr'};
+              }
+              .invoice-container {
+                max-width: 650px;
+                margin: 0 auto;
+                border: 2px solid #000;
+                padding: 20px;
+                background-color: #fff;
+              }
+              .header {
+                text-align: center;
+                border-bottom: 2px dashed #000;
+                padding-bottom: 15px;
+                margin-bottom: 15px;
+              }
+              .header h1 {
+                margin: 0;
+                font-size: 22px;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+              }
+              .info-grid {
+                display: flex;
+                justify-content: space-between;
+                font-size: 11px;
+                line-height: 1.6;
+                margin-bottom: 15px;
+                border-b: 1px dashed #000;
+                padding-bottom: 10px;
+              }
+              .address-info {
+                text-align: ${lang === 'ar' ? 'right' : 'left'};
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+              }
+              th {
+                border-bottom: 2px solid #000;
+                font-size: 11px;
+                text-align: ${lang === 'ar' ? 'right' : 'left'};
+                padding: 6px;
+              }
+              td {
+                border-bottom: 1px dashed #eee;
+                font-size: 11px;
+                padding: 8px 6px;
+                text-align: ${lang === 'ar' ? 'right' : 'left'};
+              }
+              .total-row {
+                border-top: 2px solid #000;
+                font-weight: bold;
+                font-size: 13px;
+                text-align: ${lang === 'ar' ? 'left' : 'right'};
+                padding-top: 10px;
+              }
+              .footer {
+                text-align: center;
+                margin-top: 30px;
+                font-size: 9px;
+                border-top: 1px dashed #000;
+                padding-top: 10px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+              }
+              @media print {
+                body { padding: 0; }
+                .invoice-container { border: none; }
+              }
+            </style>
+          </head>
+          <body onload="window.print(); window.close();">
+            <div class="invoice-container">
+              <div class="header">
+                <h1>4U PRO CORES LAB</h1>
+                <p style="margin: 3px 0; font-size:10px;">${lang === 'ar' ? 'فاتورة حجز شراء معتمدة رقمياً' : 'OFFICIAL SALES RESERVATION INVOICE'}</p>
+              </div>
+              <div class="info-grid">
+                <div class="address-info">
+                  <strong>${lang === 'ar' ? 'العميل:' : 'CLIENT:'}</strong> ${selectedOrder.customerName}<br>
+                  <strong>${lang === 'ar' ? 'هاتف:' : 'PHONE:'}</strong> ${selectedOrder.customerPhone}<br>
+                  <strong>${lang === 'ar' ? 'البريد:' : 'EMAIL:'}</strong> ${selectedOrder.customerEmail}<br>
+                  <strong>${lang === 'ar' ? 'العنوان:' : 'ADDRESS:'}</strong> ${selectedOrder.customerAddress}
+                </div>
+                <div style="text-align:${lang === 'ar' ? 'left' : 'right'};">
+                  <strong>${lang === 'ar' ? 'رقم الفاتورة:' : 'INVOICE NO:'}</strong> ${selectedOrder.invoiceNumber || 'INV-1000'}<br>
+                  <strong>${lang === 'ar' ? 'رمز المعاملة:' : 'TX ID:'}</strong> ${selectedOrder.id}<br>
+                  <strong>${lang === 'ar' ? 'التوقيت:' : 'DATE:'}</strong> ${selectedOrder.date}<br>
+                  <strong>${lang === 'ar' ? 'الحالة:' : 'STATUS:'}</strong> ${
+                    selectedOrder.status === 'pending' ? (lang === 'ar' ? 'بانتظار تأكيد الدفع والتحقق' : 'PENDING VERIFICATION') :
+                    selectedOrder.status === 'paid' ? (lang === 'ar' ? 'تم الدفع والتحضير' : 'PAID & PREPARING') :
+                    (lang === 'ar' ? 'تم استلام العميل بنجاح' : 'DELIVERED & SIGNED')
+                  }
+                </div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>${lang === 'ar' ? 'المنتج والعتاد' : 'HARDWARE ITEM'}</th>
+                    <th>${lang === 'ar' ? 'المواصفة' : 'SPEC'}</th>
+                    <th>${lang === 'ar' ? 'اللون' : 'COLOR'}</th>
+                    <th style="text-align:center;">${lang === 'ar' ? 'الكمية' : 'QTY'}</th>
+                    <th style="text-align:${lang === 'ar' ? 'left' : 'right'};">${lang === 'ar' ? 'السعر' : 'SUBTOTAL'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${selectedOrder.items.map((item: any) => `
+                    <tr>
+                      <td style="font-weight:bold;">${item.product.name}</td>
+                      <td>${item.customSpec || 'STD'}</td>
+                      <td>${item.selectedColor}</td>
+                      <td style="text-align:center;">${item.quantity}</td>
+                      <td style="text-align:${lang === 'ar' ? 'left' : 'right'};">${(item.product.price * item.quantity).toLocaleString()} ${selectedOrder.currency || 'EGP'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              <div class="total-row">
+                ${lang === 'ar' ? 'الرصيد الإجمالي المستحق:' : 'GRAND TOTAL POOL BALANCE:'} 
+                <span style="font-size:16px;">${selectedOrder.totalPrice.toLocaleString()} ${selectedOrder.currency || 'EGP'}</span>
+              </div>
+              <div class="footer">
+                <p style="margin:2px 0;">THANK YOU FOR TRUSTING 4U CORES SYSTEM</p>
+                <p style="margin:2px 0; font-size: 8px; color: #555;">SIGNATURE SECURE NODE::AEROSYNC v9.27::PRO-CERTIFIED</p>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      win.document.close();
+    }
+  };
 
   // Change Password states
   const [newPassword, setNewPassword] = useState<string>('');
@@ -518,6 +715,7 @@ export default function AdminPanelModal({
               {([
                 { id: 'add', label: copy.tabs.add, icon: Plus },
                 { id: 'manage', label: copy.tabs.manage, icon: LayoutGrid },
+                { id: 'orders', label: lang === 'ar' ? 'تتبع طلبات الشراء' : 'ORDERS TRACKING', icon: ClipboardList },
                 { id: 'password', label: copy.tabs.password, icon: Key }
               ] as const).map((tab) => {
                 const Icon = tab.icon;
@@ -529,6 +727,9 @@ export default function AdminPanelModal({
                       setFormError('');
                       setFormSuccess('');
                       setPasswordSuccess('');
+                      if (tab.id === 'orders') {
+                        refreshOrdersList();
+                      }
                     }}
                     className={`px-4 py-3 font-orbitron font-bold text-[10px] sm:text-xs tracking-wider border-b-2 whitespace-nowrap transition-all flex items-center gap-x-2 cursor-pointer ${
                       activeTab === tab.id
@@ -995,6 +1196,319 @@ export default function AdminPanelModal({
                 )}
               </div>
             )}
+
+            {/* TAB CONTENT: Purchase Order Tracking */}
+            {activeTab === 'orders' && (() => {
+              const orderLocalT = {
+                en: {
+                  title: "Invoices & Orders Ledger Archive",
+                  subtitle: "Search, verify, inspect past purchases, manage delivery statuses, and print officially signed code-certified invoices.",
+                  empty: "No purchase orders generated in current session stream.",
+                  id: "ORDER ID",
+                  date: "TIMESTAMP",
+                  customer: "CUSTOMER",
+                  total: "GRAND TOTAL",
+                  status: "STATUS",
+                  detailsTitle: "Invoice Verification Node",
+                  selectToInspect: "Select a digital invoice block to review hardware specifications & execute operations.",
+                  phone: "Phone Line:",
+                  email: "Email Node:",
+                  address: "Delivery Dropzone:",
+                  items: "Ordered Hardware Units",
+                  actions: "Authorized Operations",
+                  markPaid: "Confirm Purchase & Payment Received",
+                  markDelivered: "Confirm Customer Delivery Signed",
+                  printInvoice: "Print Sales Invoice",
+                  unpaidStatus: "Pending Confirmation",
+                  paidStatus: "Paid / Preparing Rig",
+                  deliveredStatus: "Deliver Complete / Signed",
+                  searchPlaceholder: "Search archive by Invoice #, name, phone, or TX code...",
+                  noResults: "No invoices matched your search query keys.",
+                },
+                ar: {
+                  title: "أرشيف وسجل فواتير الشراء المعتمدة",
+                  subtitle: "ابحث في الأرشيف، تتبع تفاصيل وعتاد الفواتير، حدّث حالة الشحن، واطبع فواتير مبيعات ورقية متكاملة.",
+                  empty: "لا يوجد طلبات أو فواتير مسجلة حالياً بالمتصفح.",
+                  id: "معرّف الطلب (ID)",
+                  date: "توقيت الطلب الالكتروني",
+                  customer: "اسم العميل المستلم",
+                  total: "قيمة المعاملة كاملة",
+                  status: "حالة تتبع المعمل",
+                  detailsTitle: "بوابة فحص وتدقيق الفاتورة المحددة",
+                  selectToInspect: "يرجى تحديد فاتورة من الأرشيف لاستعراض التفاصيل الدقيقة وحالة الشحن والعتاد.",
+                  phone: "رقم هاتف الاتصال:",
+                  email: "البريد الإلكتروني:",
+                  address: "عنوان تسليم الشحنة:",
+                  items: "الأجهزة والوحدات الحاسوبية المحجوزة",
+                  actions: "الإجراءات والعمليات الإدارية المتاحة",
+                  markPaid: "تأكيد واستلام ثمن المنتج وتأكيد الشراء",
+                  markDelivered: "تأكيد واستلام العميل للمنتج بنجاح",
+                  printInvoice: "طباعة فاتورة مبيعات ورقية",
+                  unpaidStatus: "بانتظار التأكيد والدفع",
+                  paidStatus: "تم تأكيد الدفع وجاري تخصيص العتاد",
+                  deliveredStatus: "تم الاستلام النهائي من العميل",
+                  searchPlaceholder: "ابحث في الأرشيف برقم الفاتورة (مثلا INV-1001)، الاسم، الهاتف، المعرّف...",
+                  noResults: "لم يتم العثور على فواتير تطابق كلمات البحث المدخلة.",
+                }
+              }[lang];
+
+              // Enhance orders with clean sequential invoice numbers if missing
+              const ordersWithInvoices = ordersList.map((order, idx) => {
+                const calculatedSeq = 1000 + ordersList.length - idx;
+                const invNum = order.invoiceNumber || `INV-${calculatedSeq}`;
+                return {
+                  ...order,
+                  invoiceNumber: invNum
+                };
+              });
+
+              // Apply live status & text query filters
+              const filteredOrders = ordersWithInvoices.filter((order) => {
+                const query = orderSearchQuery.toLowerCase().trim();
+                if (!query) return true;
+                return (
+                  order.id.toLowerCase().includes(query) ||
+                  order.invoiceNumber.toLowerCase().includes(query) ||
+                  order.customerName.toLowerCase().includes(query) ||
+                  order.customerPhone.toLowerCase().includes(query) ||
+                  (order.customerEmail && order.customerEmail.toLowerCase().includes(query)) ||
+                  (order.customerAddress && order.customerAddress.toLowerCase().includes(query))
+                );
+              });
+
+              return (
+                <div className="space-y-6 text-left rtl:text-right">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-y-3.5 border-b border-neutral-800/40 pb-4">
+                    <div>
+                      <h3 className="font-orbitron font-extrabold text-sm uppercase text-neon-cyan tracking-wider">{orderLocalT.title}</h3>
+                      <p className="text-xs text-neutral-400 font-sans mt-0.5">{orderLocalT.subtitle}</p>
+                    </div>
+                    {ordersList.length > 0 && (
+                      <div className="px-3 py-1 bg-neutral-900 border border-neutral-800 rounded-lg text-[10px] font-mono text-neutral-450">
+                        {lang === 'ar' ? 'إجمالي الأرشيف:' : 'TOTAL ARCHIVED:'} <span className="text-neon-cyan font-bold">{ordersList.length}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {ordersList.length === 0 ? (
+                    <div className="py-12 border border-dashed border-neutral-800 rounded-xl text-center text-xs text-neutral-400">
+                      {orderLocalT.empty}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Interactive Search Bar across the Archive */}
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-550 flex items-center">
+                          <Search className="w-4 h-4 text-neon-cyan/80 animate-pulse" />
+                        </span>
+                        <input
+                          type="text"
+                          value={orderSearchQuery}
+                          onChange={(e) => setOrderSearchQuery(e.target.value)}
+                          placeholder={orderLocalT.searchPlaceholder}
+                          className={`w-full pl-10 pr-12 py-3 rounded-xl border text-xs outline-none transition-all ${
+                            isDarkMode 
+                              ? 'bg-[#090A0F] border-neutral-800 text-white focus:border-neon-cyan/50 focus:shadow-[0_0_15px_rgba(0,240,255,0.08)] font-mono' 
+                              : 'bg-white border-neutral-200 text-black focus:border-neon-cyan'
+                          }`}
+                        />
+                        {orderSearchQuery && (
+                          <button
+                            onClick={() => setOrderSearchQuery('')}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-mono font-bold text-neon-pink hover:underline uppercase tracking-wider cursor-pointer py-1 px-2 rounded hover:bg-neon-pink/5"
+                          >
+                            {lang === 'ar' ? 'إعادة تعيين' : 'Clear'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        {/* Orders List column */}
+                        <div className="lg:col-span-5 space-y-3.5 max-h-[55vh] overflow-y-auto pr-1">
+                          {filteredOrders.length === 0 ? (
+                            <div className="py-10 border border-dashed border-neutral-800 rounded-xl text-center text-xs text-neutral-400">
+                              {orderLocalT.noResults}
+                            </div>
+                          ) : (
+                            filteredOrders.map((order) => (
+                              <div
+                                key={order.id}
+                                onClick={() => setSelectedOrder(order)}
+                                className={`p-4 rounded-xl border transition-all cursor-pointer text-left rtl:text-right ${
+                                  selectedOrder?.id === order.id
+                                    ? 'border-neon-cyan bg-neon-cyan/5 shadow-[0_0_12px_rgba(0,240,255,0.08)]'
+                                    : isDarkMode
+                                      ? 'border-neutral-800 bg-neutral-900/10 hover:border-neutral-700'
+                                      : 'border-neutral-200 bg-neutral-50 hover:border-neutral-300'
+                                }`}
+                              >
+                                <div className="flex justify-between items-start gap-x-2">
+                                  <div className="flex flex-col">
+                                    <span className="font-orbitron font-extrabold text-xs text-neon-cyan tracking-wide">
+                                      {order.invoiceNumber}
+                                    </span>
+                                    <span className="font-mono text-[9px] text-neutral-500 uppercase">
+                                      {order.id}
+                                    </span>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded text-[8px] font-mono border ${
+                                    order.status === 'pending' ? 'border-neon-pink/20 bg-neon-pink/5 text-neon-pink' :
+                                    order.status === 'paid' ? 'border-neon-cyan/20 bg-neon-cyan/5 text-neon-cyan' :
+                                    'border-emerald-500/20 bg-emerald-500/5 text-emerald-400'
+                                  }`}>
+                                    {order.status === 'pending' ? orderLocalT.unpaidStatus :
+                                     order.status === 'paid' ? orderLocalT.paidStatus :
+                                     orderLocalT.deliveredStatus}
+                                  </span>
+                                </div>
+
+                                <div className="mt-2.5 space-y-1 font-sans text-xs">
+                                  <div className="flex justify-between text-neutral-400">
+                                    <span>{lang === 'ar' ? 'العميل:' : 'Customer:'}</span>
+                                    <span className="text-white font-medium">{order.customerName}</span>
+                                  </div>
+                                  <div className="flex justify-between text-neutral-400">
+                                    <span>{lang === 'ar' ? 'القيمة الكلية:' : 'Total:'}:</span>
+                                    <span className="text-neon-purple font-mono font-bold">
+                                      {order.totalPrice.toLocaleString()} {order.items[0]?.product.currency || 'EGP'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] font-mono text-neutral-500 text-right rtl:text-left pt-1">
+                                    {order.date}
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Order Details Column */}
+                        <div className="lg:col-span-7">
+                          {selectedOrder ? (() => {
+                            // Find the matching enhanced order to get the correct backfilled invoiceNumber
+                            const enhancedSelected = ordersWithInvoices.find(o => o.id === selectedOrder.id) || selectedOrder;
+                            return (
+                              <div className={`p-5 rounded-xl border ${
+                                isDarkMode ? 'border-neutral-800 bg-neutral-900/30' : 'border-neutral-200 bg-neutral-50'
+                              } space-y-5 text-left rtl:text-right`}>
+                                
+                                {/* Details Header */}
+                                <div className="border-b border-neutral-800/40 pb-3 flex justify-between items-center">
+                                  <div>
+                                    <div className="flex items-center gap-x-2">
+                                      <span className="font-orbitron font-extrabold text-sm text-neon-cyan tracking-wider">
+                                        {enhancedSelected.invoiceNumber}
+                                      </span>
+                                      <span className="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse animate-duration-1000" />
+                                    </div>
+                                    <p className="font-mono text-[9px] text-neutral-500 mt-1 uppercase">
+                                      {lang === 'ar' ? 'رمز المعاملة المالي:' : 'TRANSACTION ID:'} {enhancedSelected.id}
+                                    </p>
+                                  </div>
+                                  <span className="text-[10px] font-mono text-neutral-500">{enhancedSelected.date}</span>
+                                </div>
+
+                            {/* Customer details */}
+                            <div className="space-y-2 font-sans text-xs text-neutral-300">
+                              <div>
+                                <strong className="text-neutral-400 inline-block w-28">{lang === 'ar' ? 'اسم العميل:' : 'Customer Name:'}</strong>
+                                <span className="text-white font-bold">{selectedOrder.customerName}</span>
+                              </div>
+                              <div>
+                                <strong className="text-neutral-400 inline-block w-28">{orderLocalT.phone}</strong>
+                                <span className="text-white font-mono">{selectedOrder.customerPhone}</span>
+                              </div>
+                              <div>
+                                <strong className="text-neutral-400 inline-block w-28">{orderLocalT.email}</strong>
+                                <span className="text-white font-mono">{selectedOrder.customerEmail}</span>
+                              </div>
+                              <div>
+                                <strong className="text-neutral-400 inline-block w-28">{orderLocalT.address}</strong>
+                                <span className="text-white">{selectedOrder.customerAddress}</span>
+                              </div>
+                            </div>
+
+                            {/* Purchased Items List */}
+                            <div className="space-y-2.5">
+                              <h5 className="font-orbitron font-extrabold text-[10px] uppercase text-neon-cyan tracking-wider">
+                                {orderLocalT.items}
+                              </h5>
+                              <div className="space-y-2 max-h-[25vh] overflow-y-auto pr-1">
+                                {selectedOrder.items.map((item: any, id: number) => (
+                                  <div key={id} className="p-3 rounded-lg border border-neutral-800 bg-black/40 flex items-center justify-between text-xs font-sans">
+                                    <div>
+                                      <span className="text-white font-bold">{item.product.name}</span>
+                                      <div className="text-[10px] text-neutral-400 mt-0.5 flex items-center gap-x-2">
+                                        <span>Spec: {item.customSpec || 'STD'}</span>
+                                        <span>•</span>
+                                        <span>Color: {item.selectedColor}</span>
+                                        <span>•</span>
+                                        <span>Qty: {item.quantity}</span>
+                                      </div>
+                                    </div>
+                                    <span className="font-mono text-neon-purple font-bold">
+                                      {((item.product?.price || 0) * (item.quantity || 1)).toLocaleString()} {selectedOrder.currency || 'EGP'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* State alteration actions */}
+                            <div className="pt-2 border-t border-neutral-800/40 space-y-3">
+                              <h5 className="font-orbitron font-extrabold text-[10px] uppercase text-neon-purple tracking-wider">
+                                {orderLocalT.actions}
+                              </h5>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                {/* Confirm purchase / Payment */}
+                                {selectedOrder.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'paid')}
+                                    className="py-2.5 px-4 rounded-xl bg-cyan-405 hover:bg-cyan-300 text-black font-semibold text-xs transition-all flex items-center justify-center gap-x-2 cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.15)] col-span-1 sm:col-span-2"
+                                    style={{ backgroundColor: '#00F0FF' }}
+                                  >
+                                    <Coins className="w-4 h-4" />
+                                    <span>{orderLocalT.markPaid}</span>
+                                  </button>
+                                )}
+
+                                {/* Confirm Client Delivery Received */}
+                                {selectedOrder.status === 'paid' && (
+                                  <button
+                                    onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'delivered')}
+                                    className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-all flex items-center justify-center gap-x-2 cursor-pointer shadow-[0_0_15px_rgba(16,185,129,0.15)] col-span-1 sm:col-span-2"
+                                  >
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>{orderLocalT.markDelivered}</span>
+                                  </button>
+                                )}
+
+                                {/* Print physical receipt invoice */}
+                                <button
+                                  onClick={handlePrint}
+                                  className="py-2.5 px-4 rounded-xl border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-800 text-white font-semibold text-xs transition-all flex items-center justify-center gap-x-2 cursor-pointer col-span-1 sm:col-span-2"
+                                >
+                                  <Printer className="w-4 h-4 text-neon-cyan" />
+                                  <span>{orderLocalT.printInvoice}</span>
+                                </button>
+                              </div>
+                            </div>
+
+                          </div>
+                        );
+                      })() : (
+                        <div className="h-full py-12 border border-dashed border-neutral-800 rounded-xl text-center text-xs text-neutral-500 font-sans flex flex-col justify-center items-center gap-y-2">
+                          <ClipboardList className="w-8 h-8 text-neutral-600 animate-pulse" />
+                          <span>{orderLocalT.selectToInspect}</span>
+                        </div>
+                      )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+            })()}
 
             {/* TAB CONTENT: Reset / Update Credential Keys */}
             {activeTab === 'password' && (
