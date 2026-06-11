@@ -315,7 +315,7 @@ export default function HeroSection({ onOpenCustomizer, isDarkMode, lang }: Hero
                 style={{ animationDuration: '8s' }}
               >
                 <img
-                  src={phoneEnigmaImg}
+                  src={localStorage.getItem('4u_pro_hero_image_v2') || phoneEnigmaImg}
                   alt="4U PRO X-Enigma Flagship Smart Device"
                   referrerPolicy="no-referrer"
                   className="w-full h-auto object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] filter contrast-105 saturate-110"

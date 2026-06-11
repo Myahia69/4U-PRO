@@ -594,3 +594,30 @@ export const translations = {
     }
   }
 };
+
+// Let's preserve and export original static translations
+export const originalTranslations = JSON.parse(JSON.stringify(translations));
+
+// Apply custom overrides from localStorage at module initialisation
+if (typeof window !== 'undefined') {
+  const custom = localStorage.getItem('4u_pro_custom_translations_v2');
+  if (custom) {
+    try {
+      const parsed = JSON.parse(custom);
+      const mergeDeep = (target: any, source: any) => {
+        for (const key in source) {
+          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            if (!target[key]) target[key] = {};
+            mergeDeep(target[key], source[key]);
+          } else {
+            target[key] = source[key];
+          }
+        }
+      };
+      mergeDeep(translations, parsed);
+    } catch (e) {
+      console.error('Failed to apply localized overrides:', e);
+    }
+  }
+}
+

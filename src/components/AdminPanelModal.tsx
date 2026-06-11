@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Lock, ShieldCheck, Key, Settings, Plus, Trash2, 
   Sparkles, RefreshCw, Upload, Eye, EyeOff, LayoutGrid, CheckCircle,
-  ClipboardList, Printer, Coins, Truck, Search
+  ClipboardList, Printer, Coins, Truck, Search, Edit
 } from 'lucide-react';
 import { Product } from '../types';
-import { Language } from '../translations';
+import { Language, originalTranslations } from '../translations';
 
 // Import image templates for production asset bundling
 import compQuantumbookImg from '../assets/images/cyberpunk_laptop_3d_1781152107551.png';
@@ -49,8 +49,8 @@ export default function AdminPanelModal({
   const [passwordError, setPasswordError] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-  // Active Tab: 'add' or 'manage' or 'password' or 'orders'
-  const [activeTab, setActiveTab] = useState<'add' | 'manage' | 'password' | 'orders'>('add');
+  // Active Tab: 'add' or 'manage' or 'password' or 'orders' or 'siteEditor'
+  const [activeTab, setActiveTab] = useState<'add' | 'manage' | 'password' | 'orders' | 'siteEditor'>('add');
 
   // Order Tracking states
   const [ordersList, setOrdersList] = useState<any[]>([]);
@@ -321,6 +321,354 @@ export default function AdminPanelModal({
   // Form error & success states
   const [formError, setFormError] = useState<string>('');
   const [formSuccess, setFormSuccess] = useState<string>('');
+
+  // --- Site Page Content Editor States ---
+  const [editorLang, setEditorLang] = useState<'ar' | 'en'>('ar');
+  const [editorSection, setEditorSection] = useState<'hero' | 'usp' | 'footer' | 'testimonials'>('hero');
+
+  // Translation states (Arabic)
+  const [arShieldBadge, setArShieldBadge] = useState('');
+  const [arTitleGlow, setArTitleGlow] = useState('');
+  const [arTitleLast, setArTitleLast] = useState('');
+  const [arSubParagraph, setArSubParagraph] = useState('');
+  const [arWelcomeName, setArWelcomeName] = useState('');
+  const [arWelcomeRole, setArWelcomeRole] = useState('');
+  const [arWelcomeQuote, setArWelcomeQuote] = useState('');
+
+  const [arUspBadge, setArUspBadge] = useState('');
+  const [arUspGlow, setArArUspGlow] = useState('');
+  const [arUspLast, setArArUspLast] = useState('');
+  const [arUspDesc, setArArUspDesc] = useState('');
+  const [arUspP1T, setArUspP1T] = useState('');
+  const [arUspP1D, setArUspP1D] = useState('');
+  const [arUspP1H, setArUspP1H] = useState('');
+  const [arUspP2T, setArUspP2T] = useState('');
+  const [arUspP2D, setArUspP2D] = useState('');
+  const [arUspP2H, setArUspP2H] = useState('');
+  const [arUspP3T, setArUspP3T] = useState('');
+  const [arUspP3D, setArUspP3D] = useState('');
+  const [arUspP3H, setArUspP3H] = useState('');
+
+  const [arFooterDesc, setArFooterDesc] = useState('');
+  const [arNewsTitle, setArNewsTitle] = useState('');
+  const [arNewsDesc, setArNewsDesc] = useState('');
+
+  // Translation states (English)
+  const [enShieldBadge, setEnShieldBadge] = useState('');
+  const [enTitleGlow, setEnTitleGlow] = useState('');
+  const [enTitleLast, setEnTitleLast] = useState('');
+  const [enSubParagraph, setEnSubParagraph] = useState('');
+  const [enWelcomeName, setEnWelcomeName] = useState('');
+  const [enWelcomeRole, setEnWelcomeRole] = useState('');
+  const [enWelcomeQuote, setEnWelcomeQuote] = useState('');
+
+  const [enUspBadge, setEnUspBadge] = useState('');
+  const [enUspGlow, setEnEnUspGlow] = useState('');
+  const [enUspLast, setEnEnUspLast] = useState('');
+  const [enUspDesc, setEnEnUspDesc] = useState('');
+  const [enUspP1T, setEnUspP1T] = useState('');
+  const [enUspP1D, setEnUspP1D] = useState('');
+  const [enUspP1H, setEnUspP1H] = useState('');
+  const [enUspP2T, setEnUspP2T] = useState('');
+  const [enUspP2D, setEnUspP2D] = useState('');
+  const [enUspP2H, setEnUspP2H] = useState('');
+  const [enUspP3T, setEnUspP3T] = useState('');
+  const [enUspP3D, setEnUspP3D] = useState('');
+  const [enUspP3H, setEnUspP3H] = useState('');
+
+  const [enFooterDesc, setEnFooterDesc] = useState('');
+  const [enNewsTitle, setEnNewsTitle] = useState('');
+  const [enNewsDesc, setEnNewsDesc] = useState('');
+
+  // Global Page Images Overrides
+  const [heroImageCustomUrl, setHeroImageCustomUrl] = useState('');
+
+  // Testimonial list manager states
+  const [testimonialsList, setTestimonialsList] = useState<any[]>([]);
+  const [editTestId, setEditTestId] = useState<string | null>(null);
+  const [testName, setTestName] = useState('');
+  const [testRole, setTestRole] = useState('');
+  const [testComment, setTestComment] = useState('');
+  const [testAvatar, setTestAvatar] = useState('');
+  const [testPlatform, setTestPlatform] = useState('');
+  const [testRating, setTestRating] = useState<number>(5);
+
+  const initializeSiteEditor = () => {
+    // 1. Load translations (which are already mutated on load by originalTranslations/localStorage)
+    const tAr = (originalTranslations.ar || {}) as any;
+    const tEn = (originalTranslations.en || {}) as any;
+    
+    // Find active overrides if any to fill inputs
+    const savedOverrides = localStorage.getItem('4u_pro_custom_translations_v2');
+    let overrides: any = {};
+    if (savedOverrides) {
+      try {
+        overrides = JSON.parse(savedOverrides);
+      } catch (e) {}
+    }
+
+    const mergeVal = (langKey: 'ar' | 'en', sectionKey: string, propKey: string, originalVal: string) => {
+      if (overrides[langKey]?.[sectionKey]?.[propKey] !== undefined) {
+        return overrides[langKey][sectionKey][propKey];
+      }
+      return originalVal;
+    };
+
+    const mergePointVal = (langKey: 'ar' | 'en', pointIdx: number, propKey: 'title' | 'desc' | 'highlight', originalVal: string) => {
+      const savedPoint = overrides[langKey]?.usp?.points?.[pointIdx];
+      if (savedPoint && savedPoint[propKey] !== undefined) {
+        return savedPoint[propKey];
+      }
+      return originalVal;
+    };
+
+    // Hero Section
+    setArShieldBadge(mergeVal('ar', 'hero', 'shieldBadge', tAr.hero?.shieldBadge || ''));
+    setArTitleGlow(mergeVal('ar', 'hero', 'mainTitleGlow', tAr.hero?.mainTitleGlow || ''));
+    setArTitleLast(mergeVal('ar', 'hero', 'mainTitleLast', tAr.hero?.mainTitleLast || ''));
+    setArSubParagraph(mergeVal('ar', 'hero', 'subParagraph', tAr.hero?.subParagraph || ''));
+    setArWelcomeName(mergeVal('ar', 'hero', 'welcomeName', tAr.hero?.welcomeName || ''));
+    setArWelcomeRole(mergeVal('ar', 'hero', 'welcomeRole', tAr.hero?.welcomeRole || ''));
+    setArWelcomeQuote(mergeVal('ar', 'hero', 'welcomeQuote', tAr.hero?.welcomeQuote || ''));
+
+    setEnShieldBadge(mergeVal('en', 'hero', 'shieldBadge', tEn.hero?.shieldBadge || ''));
+    setEnTitleGlow(mergeVal('en', 'hero', 'mainTitleGlow', tEn.hero?.mainTitleGlow || ''));
+    setEnTitleLast(mergeVal('en', 'hero', 'mainTitleLast', tEn.hero?.mainTitleLast || ''));
+    setEnSubParagraph(mergeVal('en', 'hero', 'subParagraph', tEn.hero?.subParagraph || ''));
+    setEnWelcomeName(mergeVal('en', 'hero', 'welcomeName', tEn.hero?.welcomeName || ''));
+    setEnWelcomeRole(mergeVal('en', 'hero', 'welcomeRole', tEn.hero?.welcomeRole || ''));
+    setEnWelcomeQuote(mergeVal('en', 'hero', 'welcomeQuote', tEn.hero?.welcomeQuote || ''));
+
+    // USP Section
+    setArUspBadge(mergeVal('ar', 'usp', 'integrityBadge', tAr.usp?.integrityBadge || ''));
+    setArArUspGlow(mergeVal('ar', 'usp', 'mainTitleGlow', tAr.usp?.mainTitleGlow || ''));
+    setArArUspLast(mergeVal('ar', 'usp', 'mainTitleLast', tAr.usp?.mainTitleLast || ''));
+    setArArUspDesc(mergeVal('ar', 'usp', 'subDesc', tAr.usp?.subDesc || ''));
+    setArUspP1T(mergePointVal('ar', 0, 'title', tAr.usp?.points?.[0]?.title || ''));
+    setArUspP1D(mergePointVal('ar', 0, 'desc', tAr.usp?.points?.[0]?.desc || ''));
+    setArUspP1H(mergePointVal('ar', 0, 'highlight', tAr.usp?.points?.[0]?.highlight || ''));
+    setArUspP2T(mergePointVal('ar', 1, 'title', tAr.usp?.points?.[1]?.title || ''));
+    setArUspP2D(mergePointVal('ar', 1, 'desc', tAr.usp?.points?.[1]?.desc || ''));
+    setArUspP2H(mergePointVal('ar', 1, 'highlight', tAr.usp?.points?.[1]?.highlight || ''));
+    setArUspP3T(mergePointVal('ar', 2, 'title', tAr.usp?.points?.[2]?.title || ''));
+    setArUspP3D(mergePointVal('ar', 2, 'desc', tAr.usp?.points?.[2]?.desc || ''));
+    setArUspP3H(mergePointVal('ar', 2, 'highlight', tAr.usp?.points?.[2]?.highlight || ''));
+
+    setEnUspBadge(mergeVal('en', 'usp', 'integrityBadge', tEn.usp?.integrityBadge || ''));
+    setEnEnUspGlow(mergeVal('en', 'usp', 'mainTitleGlow', tEn.usp?.mainTitleGlow || ''));
+    setEnEnUspLast(mergeVal('en', 'usp', 'mainTitleLast', tEn.usp?.mainTitleLast || ''));
+    setEnEnUspDesc(mergeVal('en', 'usp', 'subDesc', tEn.usp?.subDesc || ''));
+    setEnUspP1T(mergePointVal('en', 0, 'title', tEn.usp?.points?.[0]?.title || ''));
+    setEnUspP1D(mergePointVal('en', 0, 'desc', tEn.usp?.points?.[0]?.desc || ''));
+    setEnUspP1H(mergePointVal('en', 0, 'highlight', tEn.usp?.points?.[0]?.highlight || ''));
+    setEnUspP2T(mergePointVal('en', 1, 'title', tEn.usp?.points?.[1]?.title || ''));
+    setEnUspP2D(mergePointVal('en', 1, 'desc', tEn.usp?.points?.[1]?.desc || ''));
+    setEnUspP2H(mergePointVal('en', 1, 'highlight', tEn.usp?.points?.[1]?.highlight || ''));
+    setEnUspP3T(mergePointVal('en', 2, 'title', tEn.usp?.points?.[2]?.title || ''));
+    setEnUspP3D(mergePointVal('en', 2, 'desc', tEn.usp?.points?.[2]?.desc || ''));
+    setEnUspP3H(mergePointVal('en', 2, 'highlight', tEn.usp?.points?.[2]?.highlight || ''));
+
+    // Footer
+    setArFooterDesc(mergeVal('ar', 'footer', 'brandDesc', tAr.footer?.brandDesc || ''));
+    setArNewsTitle(mergeVal('ar', 'footer', 'newsletterTitle', tAr.footer?.newsletterTitle || ''));
+    setArNewsDesc(mergeVal('ar', 'footer', 'newsletterDesc', tAr.footer?.newsletterDesc || ''));
+
+    setEnFooterDesc(mergeVal('en', 'footer', 'brandDesc', tEn.footer?.brandDesc || ''));
+    setEnNewsTitle(mergeVal('en', 'footer', 'newsletterTitle', tEn.footer?.newsletterTitle || ''));
+    setEnNewsDesc(mergeVal('en', 'footer', 'newsletterDesc', tEn.footer?.newsletterDesc || ''));
+
+    // Hero Image custom URL
+    setHeroImageCustomUrl(localStorage.getItem('4u_pro_hero_image_v2') || '');
+
+    // Testimonials
+    const savedTestimonials = localStorage.getItem('4u_pro_testimonials_v2');
+    if (savedTestimonials) {
+      try {
+        setTestimonialsList(JSON.parse(savedTestimonials));
+      } catch (e) {
+        setTestimonialsList([]);
+      }
+    } else {
+      setTestimonialsList([
+        {
+          id: 'test-1',
+          name: 'Dr. Evelyn Carter',
+          role: 'Cybernetic System Architect',
+          avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=120&q=80',
+          comment: 'The X-Enigma phone feels like it was engineered in the 22nd century. The haptic responses and structural design are incredibly satisfying, and the ecosystem accessories pair with zero latency.',
+          rating: 5,
+          platform: 'X / Twitter'
+        },
+        {
+          id: 'test-2',
+          name: 'Zenith Labs',
+          role: 'Hardware Review Lead',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+          comment: 'AeroPulse Buds Max delivers unmatched separation depth. The light reactions and raw materials of 4U PRO items are premium-tier. Truly standard-setting for cyber-tech styling.',
+          rating: 5,
+          platform: 'TechRadar Premium'
+        },
+        {
+          id: 'test-3',
+          name: 'Marcus Vance',
+          role: 'Crypto-Trader & Enthusiast',
+          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80',
+          comment: 'Chronos-7 Watch projecting clock widgets sounds like sci-fi, but it is real and completely functional. Customer support was instant—unparalleled after-purchase support.',
+          rating: 5,
+          platform: 'Digital Nomad Digest'
+        }
+      ]);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && activeTab === 'siteEditor') {
+      initializeSiteEditor();
+    }
+  }, [isOpen, activeTab]);
+
+  const handleSaveSiteContent = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const overridesAr: any = {
+      hero: {
+        shieldBadge: arShieldBadge,
+        mainTitleGlow: arTitleGlow,
+        mainTitleLast: arTitleLast,
+        subParagraph: arSubParagraph,
+        welcomeName: arWelcomeName,
+        welcomeRole: arWelcomeRole,
+        welcomeQuote: arWelcomeQuote
+      },
+      usp: {
+        integrityBadge: arUspBadge,
+        mainTitleGlow: arUspGlow,
+        mainTitleLast: arUspLast,
+        subDesc: arUspDesc,
+        points: [
+          { title: arUspP1T, desc: arUspP1D, highlight: arUspP1H },
+          { title: arUspP2T, desc: arUspP2D, highlight: arUspP2H },
+          { title: arUspP3T, desc: arUspP3D, highlight: arUspP3H }
+        ]
+      },
+      footer: {
+        brandDesc: arFooterDesc,
+        newsletterTitle: arNewsTitle,
+        newsletterDesc: arNewsDesc
+      }
+    };
+
+    const overridesEn: any = {
+      hero: {
+        shieldBadge: enShieldBadge,
+        mainTitleGlow: enTitleGlow,
+        mainTitleLast: enTitleLast,
+        subParagraph: enSubParagraph,
+        welcomeName: enWelcomeName,
+        welcomeRole: enWelcomeRole,
+        welcomeQuote: enWelcomeQuote
+      },
+      usp: {
+        integrityBadge: enUspBadge,
+        mainTitleGlow: enUspGlow,
+        mainTitleLast: enUspLast,
+        subDesc: enUspDesc,
+        points: [
+          { title: enUspP1T, desc: enUspP1D, highlight: enUspP1H },
+          { title: enUspP2T, desc: enUspP2D, highlight: enUspP2H },
+          { title: enUspP3T, desc: enUspP3D, highlight: enUspP3H }
+        ]
+      },
+      footer: {
+        brandDesc: enFooterDesc,
+        newsletterTitle: enNewsTitle,
+        newsletterDesc: enNewsDesc
+      }
+    };
+
+    const globalOverrides = {
+      ar: overridesAr,
+      en: overridesEn
+    };
+
+    localStorage.setItem('4u_pro_custom_translations_v2', JSON.stringify(globalOverrides));
+
+    if (heroImageCustomUrl.trim()) {
+      localStorage.setItem('4u_pro_hero_image_v2', heroImageCustomUrl.trim());
+    } else {
+      localStorage.removeItem('4u_pro_hero_image_v2');
+    }
+
+    localStorage.setItem('4u_pro_testimonials_v2', JSON.stringify(testimonialsList));
+
+    setFormSuccess(lang === 'ar' ? 'تم حفظ وتوثيق محتوى الصفحة والشرائح بنجاح! سيتم تنشيط وإجراء إعادة تحميل فورية لتفعيل التغييرات...' : 'Site content successfully saved! Reloading to apply all dynamic integrations...');
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
+  };
+
+  const handleAddTestimonial = () => {
+    if (!testName || !testComment) {
+      alert(lang === 'ar' ? 'يرجى إدخال الاسم والتعليق لرأي العميل' : 'Please input both name and comment');
+      return;
+    }
+    const newTest = {
+      id: editTestId || 'test-' + Date.now(),
+      name: testName,
+      role: testRole || 'Client',
+      avatar: testAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80',
+      comment: testComment,
+      rating: testRating,
+      platform: testPlatform || 'Validated Buyer',
+      overrideName: testName,
+      overrideRole: testRole || 'Client',
+      overrideComment: testComment
+    };
+
+    let updated: any[] = [];
+    if (editTestId) {
+      updated = testimonialsList.map(t => t.id === editTestId ? newTest : t);
+      setFormSuccess(lang === 'ar' ? 'تم تعديل مراجعة وتعديل رأي العميل المختار بنجاح' : 'Testimonial successfully updated');
+    } else {
+      updated = [...testimonialsList, newTest];
+      setFormSuccess(lang === 'ar' ? 'تم إضافة رأي عميل سيبراني جديد للقائمة' : 'New customer testimonial added');
+    }
+
+    setTestimonialsList(updated);
+    setEditTestId(null);
+    setTestName('');
+    setTestRole('');
+    setTestComment('');
+    setTestAvatar('');
+    setTestPlatform('');
+    setTestRating(5);
+  };
+
+  const handleEditTestimonialClick = (test: any) => {
+    setEditTestId(test.id);
+    setTestName(test.overrideName || test.name);
+    setTestRole(test.overrideRole || test.role);
+    setTestComment(test.overrideComment || test.comment);
+    setTestAvatar(test.avatar);
+    setTestPlatform(test.platform);
+    setTestRating(test.rating);
+  };
+
+  const handleDeleteTestimonial = (id: string) => {
+    const updated = testimonialsList.filter(t => t.id !== id);
+    setTestimonialsList(updated);
+    setFormSuccess(lang === 'ar' ? 'تم حذف مراجعة العميل المحددة بنجاح' : 'Testimonial deleted successfully');
+    if (editTestId === id) {
+      setEditTestId(null);
+      setTestName('');
+      setTestRole('');
+      setTestComment('');
+      setTestAvatar('');
+      setTestPlatform('');
+      setTestRating(5);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -751,6 +1099,7 @@ export default function AdminPanelModal({
                 { id: 'add', label: copy.tabs.add, icon: Plus },
                 { id: 'manage', label: copy.tabs.manage, icon: LayoutGrid },
                 { id: 'orders', label: lang === 'ar' ? 'تتبع طلبات الشراء' : 'ORDERS TRACKING', icon: ClipboardList },
+                { id: 'siteEditor', label: lang === 'ar' ? 'تعديل محتوى الصفحة والشرائح' : 'SITE PAGE CONTENT EDITOR', icon: Edit },
                 { id: 'password', label: copy.tabs.password, icon: Key }
               ] as const).map((tab) => {
                 const Icon = tab.icon;
@@ -1544,6 +1893,600 @@ export default function AdminPanelModal({
               </div>
             );
             })()}
+
+            {/* TAB CONTENT: Site Content and Testimonials Editor */}
+            {activeTab === 'siteEditor' && (
+              <div className="space-y-6 text-left rtl:text-right p-5 rounded-2xl border border-neutral-800 bg-neutral-950/20 max-w-4xl mx-auto">
+                
+                {/* Section Header */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-y-3 pb-4 border-b border-neutral-800/80">
+                  <div className="space-y-1 text-center sm:text-left rtl:text-right">
+                    <h3 className="font-orbitron font-extrabold text-sm uppercase tracking-wider text-neon-cyan">
+                      {lang === 'ar' ? 'منصة تعديل وتأثيث صفحات المتجر' : 'DYNAMICAL PAGE CONTENT TERMINAL'}
+                    </h3>
+                    <p className="text-xs text-neutral-400 font-sans">
+                      {lang === 'ar' ? 'تحكم بشكل كامل في النصوص، ترويسات اللغة، الصور الرئيسية، وآراء وشرائح العملاء بالموقع.' : 'Complete dynamic customization of website copywriting, display media, and testimonials.'}
+                    </p>
+                  </div>
+
+                  {/* High Tech Language Selector for the Copywriter */}
+                  <div className="flex bg-neutral-900 border border-neutral-800 rounded-xl p-0.5 select-none gap-x-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditorLang('ar')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                        editorLang === 'ar' 
+                          ? 'bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/20' 
+                          : 'text-neutral-400 border border-transparent hover:text-white'
+                      }`}
+                    >
+                      العربية (AR)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditorLang('en')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all ${
+                        editorLang === 'en' 
+                          ? 'bg-neon-cyan/15 text-neon-cyan border border-neon-cyan/20' 
+                          : 'text-neutral-400 border border-transparent hover:text-white'
+                      }`}
+                    >
+                      ENGLISH (EN)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub Tab Navigation across page structure nodes */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {([
+                    { id: 'hero', labelAr: 'الواجهة والترحيب', labelEn: 'Hero & Welcome' },
+                    { id: 'usp', labelAr: 'مزايا وفارق المعمل', labelEn: 'Core Integrity USPs' },
+                    { id: 'footer', labelAr: 'النشرة والفوتر', labelEn: 'Footer & Newsletter' },
+                    { id: 'testimonials', labelAr: 'مراجعات وآراء النخبة', labelEn: 'Vanguard Testimonials' }
+                  ] as const).map((sec) => (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => setEditorSection(sec.id)}
+                      className={`py-2 px-3 rounded-xl border text-[10px] sm:text-xs font-bold font-orbitron tracking-wider transition-all cursor-pointer ${
+                        editorSection === sec.id
+                          ? 'bg-neon-purple/15 border-neon-purple text-neon-purple shadow-[0_0_12px_rgba(139,92,246,0.15)]'
+                          : 'bg-neutral-900/60 border-neutral-800/80 text-neutral-400 hover:text-white hover:bg-neutral-900'
+                      }`}
+                    >
+                      {lang === 'ar' ? sec.labelAr : sec.labelEn}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sub Forms Container */}
+                <form onSubmit={handleSaveSiteContent} className="space-y-6 pt-2">
+                  
+                  {/* HERO SECTION FORMS */}
+                  {editorSection === 'hero' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Shield Badge */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'شارة الأمان العليا بالهيدر' : 'Shield Badge'}
+                        </label>
+                        <input
+                          type="text"
+                          value={editorLang === 'ar' ? arShieldBadge : enShieldBadge}
+                          onChange={(e) => editorLang === 'ar' ? setArShieldBadge(e.target.value) : setEnShieldBadge(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Title Glow */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'العنوان المضيء الرئيسي' : 'Main Title (Glow part)'}
+                        </label>
+                        <input
+                          type="text"
+                          value={editorLang === 'ar' ? arTitleGlow : enTitleGlow}
+                          onChange={(e) => editorLang === 'ar' ? setArTitleGlow(e.target.value) : setEnTitleGlow(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Title Last */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'بقية العنوان الرئيسي' : 'Main Title (Trailing part)'}
+                        </label>
+                        <input
+                          type="text"
+                          value={editorLang === 'ar' ? arTitleLast : enTitleLast}
+                          onChange={(e) => editorLang === 'ar' ? setArTitleLast(e.target.value) : setEnTitleLast(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Hero Image override */}
+                      <div className="space-y-1.5 col-span-1 md:col-span-2">
+                        <label className="block text-[10px] text-neon-cyan uppercase tracking-widest font-mono font-bold">
+                          {editorLang === 'ar' ? 'رابط خادم لصورة المعرض الرئيسي (URL)' : 'Hero Device Image Source (Custom URL)'}
+                        </label>
+                        <input
+                          type="text"
+                          value={heroImageCustomUrl}
+                          onChange={(e) => setHeroImageCustomUrl(e.target.value)}
+                          placeholder="e.g. https://images.unsplash.com/... or Base64 url"
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-mono text-xs transition-all ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                        <p className="text-[10px] text-neutral-500 font-sans mt-0.5">
+                          {lang === 'ar' ? 'اتركه فارغاً لاعتماد النموذج ثلاثي الأبعاد الافتراضي الخاص بـ 4U PRO X-Enigma.' : 'Leave empty to display original 4U PRO X-Enigma flagship 3D device render.'}
+                        </p>
+                      </div>
+
+                      {/* Hero Sub Paragraph */}
+                      <div className="space-y-1.5 col-span-1 md:col-span-2">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'الوصف التقديمي للهيدر' : 'Hero Sub-Paragraph Copy'}
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={editorLang === 'ar' ? arSubParagraph : enSubParagraph}
+                          onChange={(e) => editorLang === 'ar' ? setArSubParagraph(e.target.value) : setEnSubParagraph(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all resize-none ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Founder Hanafy Welcomer Card */}
+                      <div className="col-span-1 md:col-span-2 border-t border-neutral-800/60 pt-4 mt-2 space-y-4">
+                        <h4 className="text-xs uppercase font-orbitron font-extrabold text-neon-pink flex items-center gap-x-1.5">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>{editorLang === 'ar' ? 'محرك ترحيب وتوقيع المهندس أحمد حنفي' : 'Founder Integration parameters'}</span>
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] text-neutral-400 uppercase tracking-wider">
+                              {editorLang === 'ar' ? 'اسم مؤسس المعمل والمهندس' : 'Founder Designation Name'}
+                            </label>
+                            <input
+                              type="text"
+                              value={editorLang === 'ar' ? arWelcomeName : enWelcomeName}
+                              onChange={(e) => editorLang === 'ar' ? setArWelcomeName(e.target.value) : setEnWelcomeName(e.target.value)}
+                              className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-305 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] text-neutral-400 uppercase tracking-wider">
+                              {editorLang === 'ar' ? 'المسمى الوظيفي والدور التقني' : 'Founder Technical Role'}
+                            </label>
+                            <input
+                              type="text"
+                              value={editorLang === 'ar' ? arWelcomeRole : enWelcomeRole}
+                              onChange={(e) => editorLang === 'ar' ? setArWelcomeRole(e.target.value) : setEnWelcomeRole(e.target.value)}
+                              className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-305 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1.5 col-span-1 sm:col-span-2">
+                            <label className="block text-[9px] text-neutral-400 uppercase tracking-wider">
+                              {editorLang === 'ar' ? 'رسالة وقول الترحيب بالعملاء' : 'Founder Hologram Welcome Statement'}
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={editorLang === 'ar' ? arWelcomeQuote : enWelcomeQuote}
+                              onChange={(e) => editorLang === 'ar' ? setArWelcomeQuote(e.target.value) : setEnWelcomeQuote(e.target.value)}
+                              className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all resize-none ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-305 text-black'
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRO USPs SECTION FORMS */}
+                  {editorSection === 'usp' && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Integrity Badge */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                            {editorLang === 'ar' ? 'شارة وضمان الموثوقية بمنتصف الصفحة' : 'Section Badge'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editorLang === 'ar' ? arUspBadge : enUspBadge}
+                            onChange={(e) => editorLang === 'ar' ? setArUspBadge(e.target.value) : setEnUspBadge(e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                              isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                            }`}
+                          />
+                        </div>
+
+                        {/* USP Main Title (glow) */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                            {editorLang === 'ar' ? 'عنوان مزايا المتجر المضيء' : 'Section Title Glow'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editorLang === 'ar' ? arUspGlow : enUspGlow}
+                            onChange={(e) => editorLang === 'ar' ? setArArUspGlow(e.target.value) : setEnEnUspGlow(e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                              isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                            }`}
+                          />
+                        </div>
+
+                        {/* USP Title Last */}
+                        <div className="space-y-1.5">
+                          <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                            {editorLang === 'ar' ? 'بقية عنوان مزايا المتجر اللاحق' : 'Section Title Trailing'}
+                          </label>
+                          <input
+                            type="text"
+                            value={editorLang === 'ar' ? arUspLast : enUspLast}
+                            onChange={(e) => editorLang === 'ar' ? setArArUspLast(e.target.value) : setEnEnUspLast(e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                              isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                            }`}
+                          />
+                        </div>
+
+                        {/* USP Section intro desc */}
+                        <div className="space-y-1.5 col-span-1 sm:col-span-2">
+                          <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                            {editorLang === 'ar' ? 'مقدمة ووصف معايير الجودة' : 'Section Sub-Description Copy'}
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={editorLang === 'ar' ? arUspDesc : enUspDesc}
+                            onChange={(e) => editorLang === 'ar' ? setArArUspDesc(e.target.value) : setEnEnUspDesc(e.target.value)}
+                            className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all resize-none ${
+                              isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Map the 3 point edits */}
+                      <div className="border-t border-neutral-800/60 pt-4 space-y-6">
+                        <h4 className="text-xs uppercase font-orbitron font-extrabold text-neon-cyan flex items-center gap-x-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>{editorLang === 'ar' ? 'تعديل نقاط الفارق وعقد الضمان الثابتة الثلاثة بالموقع' : 'Configure individual Integrity Pillars'}</span>
+                        </h4>
+
+                        {[
+                          { id: 1, title: arUspP1T, setTitle: setArUspP1T, desc: arUspP1D, setDesc: setArUspP1D, hl: arUspP1H, setHl: setArUspP1H, entitle: enUspP1T, setEnTitle: setEnUspP1T, endesc: enUspP1D, setEnDesc: setEnUspP1D, enhl: enUspP1H, setEnHl: setEnUspP1H },
+                          { id: 2, title: arUspP2T, setTitle: setArUspP2T, desc: arUspP2D, setDesc: setArUspP2D, hl: arUspP2H, setHl: setArUspP2H, entitle: enUspP2T, setEnTitle: setEnUspP2T, endesc: enUspP2D, setEnDesc: setEnUspP2D, enhl: enUspP2H, setEnHl: setEnUspP2H },
+                          { id: 3, title: arUspP3T, setTitle: setArUspP3T, desc: arUspP3D, setDesc: setArUspP3D, hl: arUspP3H, setHl: setArUspP3H, entitle: enUspP3T, setEnTitle: setEnUspP3T, endesc: enUspP3D, setEnDesc: setEnUspP3D, enhl: enUspP3H, setEnHl: setEnUspP3H }
+                        ].map((node) => (
+                          <div key={node.id} className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/15 space-y-3">
+                            <span className="font-mono text-[9px] text-neon-purple font-extrabold uppercase bg-neon-purple/5 px-2 py-0.5 rounded border border-neon-purple/20">
+                              {editorLang === 'ar' ? `النقطة التلميترية الضامنة رقم ${node.id}` : `INTEGRITY CORE NODE #${node.id}`}
+                            </span>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <label className="block text-[9px] text-neutral-400 font-mono">
+                                  {editorLang === 'ar' ? `عنوان النقطة ${node.id}` : 'Node Title'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editorLang === 'ar' ? node.title : node.entitle}
+                                  onChange={(e) => editorLang === 'ar' ? node.setTitle(e.target.value) : node.setEnTitle(e.target.value)}
+                                  className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all ${
+                                    isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                                  }`}
+                                />
+                              </div>
+
+                              <div className="space-y-1">
+                                <label className="block text-[9px] text-neutral-400 font-mono">
+                                  {editorLang === 'ar' ? `شارة التميز الجانبية (الأخضر المضيء)` : 'Highlight Tag'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editorLang === 'ar' ? node.hl : node.enhl}
+                                  onChange={(e) => editorLang === 'ar' ? node.setHl(e.target.value) : node.setEnHl(e.target.value)}
+                                  className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all ${
+                                    isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                                  }`}
+                                />
+                              </div>
+
+                              <div className="space-y-1 col-span-1 sm:col-span-2">
+                                <label className="block text-[9px] text-neutral-400 font-mono">
+                                  {editorLang === 'ar' ? 'الوصف والتفاصيل المعتمدة للنقطة' : 'Node Detailed Copy'}
+                                </label>
+                                <textarea
+                                  rows={2}
+                                  value={editorLang === 'ar' ? node.desc : node.endesc}
+                                  onChange={(e) => editorLang === 'ar' ? node.setDesc(e.target.value) : node.setEnDesc(e.target.value)}
+                                  className={`w-full px-3 py-2 rounded-lg border outline-none font-sans text-xs transition-all resize-none ${
+                                    isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                                  }`}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FOOTER & NEWSLETTER FORMS */}
+                  {editorSection === 'footer' && (
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* Footer desc brand slogan */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'شعار ونصوص وصف المتجر في الفوتر' : 'Footer Brand Slogan'}
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={editorLang === 'ar' ? arFooterDesc : enFooterDesc}
+                          onChange={(e) => editorLang === 'ar' ? setArFooterDesc(e.target.value) : setEnFooterDesc(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all resize-none ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Newsletter Title */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'عنوان صندوق البريد النشرة السيبرانية' : 'Newsletter Title Header'}
+                        </label>
+                        <input
+                          type="text"
+                          value={editorLang === 'ar' ? arNewsTitle : enNewsTitle}
+                          onChange={(e) => editorLang === 'ar' ? setArNewsTitle(e.target.value) : setEnNewsTitle(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+
+                      {/* Newsletter description */}
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                          {editorLang === 'ar' ? 'وصف تفاصيل النشرة البريدية والعروض' : 'Newsletter Slogan Sub-Desc'}
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={editorLang === 'ar' ? arNewsDesc : enNewsDesc}
+                          onChange={(e) => editorLang === 'ar' ? setArNewsDesc(e.target.value) : setEnNewsDesc(e.target.value)}
+                          className={`w-full px-4 py-2.5 rounded-xl border outline-none font-sans text-xs transition-all resize-none ${
+                            isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* VANGUARD TESTIMONIALS SLIDER INJECTOR & LIST */}
+                  {editorSection === 'testimonials' && (
+                    <div className="space-y-6">
+                      
+                      {/* Form to Add or Edit Testimonial testimonial card */}
+                      <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/10 space-y-4 text-left rtl:text-right">
+                        <h4 className="text-xs uppercase font-orbitron font-extrabold text-neon-pink">
+                          {editTestId 
+                            ? (editorLang === 'ar' ? 'تعديل مراجعة العميل السيبراني' : 'MODIFY DESIGNATED PILOT LOG') 
+                            : (editorLang === 'ar' ? 'إضافة رأي عميل سيبراني جديد للقائمة' : 'INJECT NEW VANGUARD LOG')}
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
+                          <div className="space-y-1">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'اسم العميل' : 'Client Profile Name'}
+                            </label>
+                            <input
+                              type="text"
+                              value={testName}
+                              onChange={(e) => setTestName(e.target.value)}
+                              placeholder="e.g. Dr. Omar Hanafy"
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'الدور التقني وخبرته' : 'Designated Role'}
+                            </label>
+                            <input
+                              type="text"
+                              value={testRole}
+                              onChange={(e) => setTestRole(e.target.value)}
+                              placeholder="e.g. Chief Cybernetic Architect"
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'رابط خادم لصورة العميل الشخصية (Avatar URL)' : 'Client Avatar Image (URL)'}
+                            </label>
+                            <input
+                              type="text"
+                              value={testAvatar}
+                              onChange={(e) => setTestAvatar(e.target.value)}
+                              placeholder="https://images.unsplash.com/..."
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'منصة النشر والتوثيق' : 'Hub Platform Info'}
+                            </label>
+                            <input
+                              type="text"
+                              value={testPlatform}
+                              onChange={(e) => setTestPlatform(e.target.value)}
+                              placeholder="e.g. TechRadar Premium"
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'كثافة التقييم الإشاري (النجوم)' : 'Star Core Rating'}
+                            </label>
+                            <select
+                              value={testRating}
+                              onChange={(e) => setTestRating(Number(e.target.value))}
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-850 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            >
+                              <option value={5}>⭐⭐⭐⭐⭐ (5/5)</option>
+                              <option value={4}>⭐⭐⭐⭐ (4/5)</option>
+                              <option value={3}>⭐⭐⭐ (3/5)</option>
+                              <option value={2}>⭐⭐ (2/5)</option>
+                              <option value={1}>⭐ (1/5)</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1 col-span-1 sm:col-span-2">
+                            <label className="block text-[9px] text-neutral-400 font-sans uppercase">
+                              {editorLang === 'ar' ? 'الرأي والتعليق السيبراني الكامل' : 'Vanguard Audit Statement'}
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={testComment}
+                              onChange={(e) => setTestComment(e.target.value)}
+                              className={`w-full px-3 py-2 rounded-lg border outline-none text-xs transition-all resize-none ${
+                                isDarkMode ? 'bg-neutral-900 border-neutral-800 text-white' : 'bg-white border-neutral-300 text-black'
+                              }`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleAddTestimonial}
+                            className="flex-1 py-2 px-4 rounded-xl bg-neon-cyan text-black font-extrabold font-orbitron text-xs tracking-wider hover:opacity-90 transition-all cursor-pointer"
+                          >
+                            {editTestId 
+                              ? (editorLang === 'ar' ? 'تحديث مراجعة العميل' : 'CONFIRM CUSTOM UPDATE') 
+                              : (editorLang === 'ar' ? 'إضافة المراجعة للقائمة المؤقتة' : 'REGISTER LOG ENTRY')}
+                          </button>
+
+                          {editTestId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditTestId(null);
+                                setTestName('');
+                                setTestRole('');
+                                setTestComment('');
+                                setTestAvatar('');
+                                setTestPlatform('');
+                                setTestRating(5);
+                              }}
+                              className="py-2 px-4 rounded-xl border border-neutral-700 text-white text-xs cursor-pointer font-bold uppercase hover:bg-neutral-900"
+                            >
+                              {editorLang === 'ar' ? 'إلغاء' : 'Cancel'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Display Active List */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs uppercase font-orbitron font-extrabold text-neutral-400">
+                          {editorLang === 'ar' ? 'آراء ومراجعات النخبة النشطة بالمركبة' : 'ACTIVE VANGUARD TESTIMONIAL DIRECTORY'}
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {testimonialsList.map((test) => {
+                            const dName = test.overrideName || test.name;
+                            const dRole = test.overrideRole || test.role;
+                            const dComment = test.overrideComment || test.comment;
+
+                            return (
+                              <div key={test.id} className="p-3.5 rounded-xl border border-neutral-800 bg-neutral-900/5 hover:border-neutral-700 transition-all flex flex-col justify-between gap-y-3">
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-x-2.5">
+                                    <img src={test.avatar} alt={dName} className="w-8 h-8 rounded-full border border-neutral-850 p-0.5 object-cover" referrerPolicy="no-referrer" />
+                                    <div className="text-left rtl:text-right">
+                                      <h5 className="font-bold text-xs text-white uppercase tracking-wide leading-none">{dName}</h5>
+                                      <span className="text-[9px] text-neon-cyan font-mono italic mt-1 inline-block leading-none">{dRole}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  <p className="text-[10px] text-neutral-300 leading-relaxed text-left rtl:text-right line-clamp-3">
+                                    "{dComment}"
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center justify-between border-t border-neutral-800/40 pt-2 font-mono text-[9px]">
+                                  <span className="text-amber-500">{'★'.repeat(test.rating)}</span>
+                                  <div className="flex gap-x-2.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditTestimonialClick(test)}
+                                      className="text-neon-cyan hover:underline cursor-pointer"
+                                    >
+                                      {editorLang === 'ar' ? 'تعديل' : 'EDIT'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteTestimonial(test.id)}
+                                      className="text-rose-450 text-red-400 hover:underline cursor-pointer"
+                                    >
+                                      {editorLang === 'ar' ? 'حذف' : 'DELETE'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                  {/* Unified Global Save Button */}
+                  <div className="border-t border-neutral-800/60 pt-5 mt-4">
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-neon-purple via-neon-cyan to-neon-pink text-black font-orbitron font-black text-xs tracking-widest hover:scale-[1.005] transition-all hover:shadow-[0_0_20px_rgba(0,240,255,0.25)] cursor-pointer"
+                    >
+                      {lang === 'ar' ? 'حفظ وتثبيت تعديلات محتوی الصفحة كاملة' : 'SAVE & INTEGRATE FULL WEBSITE CUSTOMIZATIONS'}
+                    </button>
+                  </div>
+
+                </form>
+
+              </div>
+            )}
 
             {/* TAB CONTENT: Reset / Update Credential Keys */}
             {activeTab === 'password' && (

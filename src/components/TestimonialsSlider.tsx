@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { testimonials } from '../data';
+import { testimonials as initialTestimonials } from '../data';
 import { Star, ChevronLeft, ChevronRight, MessageSquare, Quote, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from '../translations';
@@ -12,25 +12,49 @@ interface TestimonialsSliderProps {
 export default function TestimonialsSlider({ isDarkMode, lang }: TestimonialsSliderProps) {
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
+  const [testimonialsList, setTestimonialsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('4u_pro_testimonials_v2');
+    if (saved) {
+      try {
+        setTestimonialsList(JSON.parse(saved));
+        return;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setTestimonialsList(initialTestimonials);
+  }, []);
 
   const t = translations[lang];
 
-  const baseTest = testimonials[index];
+  if (testimonialsList.length === 0) {
+    return null;
+  }
+
+  const baseTest = testimonialsList[index] || testimonialsList[0];
+  if (!baseTest) return null;
+
   // Map translated testimonial fields from static translation's testimonials.items array
-  const localizedTest = t.testimonials.items[index] || {
+  const localizedTest = t.testimonials.items?.[index] || {
     name: baseTest.name,
     role: baseTest.role,
     comment: baseTest.comment
   };
 
+  const currentComment = baseTest.overrideComment || localizedTest.comment || baseTest.comment;
+  const currentName = baseTest.overrideName || localizedTest.name || baseTest.name;
+  const currentRole = baseTest.overrideRole || localizedTest.role || baseTest.role;
+
   const handleNext = () => {
     setDirection('right');
-    setIndex((prev) => (prev + 1) % testimonials.length);
+    setIndex((prev) => (prev + 1) % testimonialsList.length);
   };
 
   const handlePrev = () => {
     setDirection('left');
-    setIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+    setIndex((prev) => (prev - 1 + testimonialsList.length) % testimonialsList.length);
   };
 
   return (
@@ -79,7 +103,7 @@ export default function TestimonialsSlider({ isDarkMode, lang }: TestimonialsSli
               <p className={`font-sans text-base sm:text-lg leading-relaxed font-light ${
                 isDarkMode ? 'text-neutral-200' : 'text-neutral-800'
               }`}>
-                "{localizedTest.comment}"
+                "{currentComment}"
               </p>
 
               {/* Bio & Avatar */}
@@ -88,7 +112,7 @@ export default function TestimonialsSlider({ isDarkMode, lang }: TestimonialsSli
                   <div className="w-12 h-12 rounded-xl bg-neutral-900 border border-neutral-700/50 p-0.5 overflow-hidden flex items-center justify-center">
                     <img
                       src={baseTest.avatar}
-                      alt={localizedTest.name}
+                      alt={currentName}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover rounded-lg"
                     />
@@ -97,10 +121,10 @@ export default function TestimonialsSlider({ isDarkMode, lang }: TestimonialsSli
                     <h4 className={`font-orbitron font-extrabold text-xs uppercase tracking-wider ${
                       isDarkMode ? 'text-white' : 'text-neutral-900'
                     }`}>
-                      {localizedTest.name}
+                      {currentName}
                     </h4>
                     <p className="text-[10px] text-neon-cyan font-mono mt-0.5 font-bold">
-                      {localizedTest.role}
+                      {currentRole}
                     </p>
                   </div>
                 </div>
@@ -139,7 +163,7 @@ export default function TestimonialsSlider({ isDarkMode, lang }: TestimonialsSli
 
         {/* Bullet Dots indicators */}
         <div className="flex items-center justify-center gap-x-2 mt-8">
-          {testimonials.map((_, dotIdx) => (
+          {testimonialsList.map((_, dotIdx) => (
             <button
               key={dotIdx}
               onClick={() => setIndex(dotIdx)}
