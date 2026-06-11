@@ -44,7 +44,9 @@ export default function AdminPanelModal({
   onResetCatalog
 }: AdminPanelModalProps) {
   // Authentication states
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('4u_pro_admin_logged_in') === 'true';
+  });
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -68,6 +70,13 @@ export default function AdminPanelModal({
           console.error(e);
         }
       }
+    } else {
+      // Exiting the Admin room: Reset authentication states immediately
+      setIsAuthenticated(false);
+      localStorage.removeItem('4u_pro_admin_logged_in');
+      setPasswordInput('');
+      setPasswordError('');
+      window.dispatchEvent(new Event('admin-login-changed'));
     }
   }, [isOpen, activeTab]);
 
@@ -324,7 +333,8 @@ export default function AdminPanelModal({
 
   // --- Site Page Content Editor States ---
   const [editorLang, setEditorLang] = useState<'ar' | 'en'>('ar');
-  const [editorSection, setEditorSection] = useState<'hero' | 'usp' | 'footer' | 'testimonials'>('hero');
+  const [editorSection, setEditorSection] = useState<'hero' | 'usp' | 'footer' | 'testimonials' | 'userReviews'>('hero');
+  const [userReviewsList, setUserReviewsList] = useState<any[]>([]);
 
   // Translation states (Arabic)
   const [arShieldBadge, setArShieldBadge] = useState('');
@@ -519,6 +529,16 @@ export default function AdminPanelModal({
         }
       ]);
     }
+
+    // Load user reviews
+    const savedUserReviews = localStorage.getItem('4u_pro_user_reviews_v3');
+    if (savedUserReviews) {
+      try {
+        setUserReviewsList(JSON.parse(savedUserReviews));
+      } catch (e) {
+        setUserReviewsList([]);
+      }
+    }
   };
 
   useEffect(() => {
@@ -526,6 +546,23 @@ export default function AdminPanelModal({
       initializeSiteEditor();
     }
   }, [isOpen, activeTab]);
+
+  useEffect(() => {
+    const syncUserReviews = () => {
+      const saved = localStorage.getItem('4u_pro_user_reviews_v3');
+      if (saved) {
+        try {
+          setUserReviewsList(JSON.parse(saved));
+        } catch (e) {}
+      }
+    };
+    window.addEventListener('reviews-updated', syncUserReviews);
+    window.addEventListener('storage', syncUserReviews);
+    return () => {
+      window.removeEventListener('reviews-updated', syncUserReviews);
+      window.removeEventListener('storage', syncUserReviews);
+    };
+  }, []);
 
   const handleSaveSiteContent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -668,6 +705,17 @@ export default function AdminPanelModal({
       setTestPlatform('');
       setTestRating(5);
     }
+  };
+
+  const handleDeleteUserReview = (id: string) => {
+    const updated = userReviewsList.filter(r => r.id !== id);
+    setUserReviewsList(updated);
+    localStorage.setItem('4u_pro_user_reviews_v3', JSON.stringify(updated));
+    setFormSuccess(lang === 'ar' ? 'تم حذف مراجعة العميل بنجاح من النظام' : 'Customer review deleted successfully');
+    window.dispatchEvent(new Event('reviews-updated'));
+    setTimeout(() => {
+      setFormSuccess('');
+    }, 4000);
   };
 
   if (!isOpen) return null;
@@ -814,6 +862,8 @@ export default function AdminPanelModal({
     const stored = localStorage.getItem('4u_pro_admin_pass') || '123456';
     if (passwordInput.trim() === stored) {
       setIsAuthenticated(true);
+      localStorage.setItem('4u_pro_admin_logged_in', 'true');
+      window.dispatchEvent(new Event('admin-login-changed'));
       setPasswordError('');
     } else {
       setPasswordError(copy.authError);
@@ -1126,6 +1176,21 @@ export default function AdminPanelModal({
                   </button>
                 );
               })}
+              
+              {/* Premium Red-Accented Sign Out Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  localStorage.removeItem('4u_pro_admin_logged_in');
+                  window.dispatchEvent(new Event('admin-login-changed'));
+                  onClose();
+                }}
+                className="px-4 py-3 font-orbitron font-bold text-[10px] sm:text-xs tracking-wider border-b-2 border-transparent text-red-400 hover:text-red-300 hover:bg-red-950/15 transition-all flex items-center gap-x-2 cursor-pointer ml-auto rtl:mr-auto rtl:ml-0"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                <span>{lang === 'ar' ? 'تسجيل الخروج' : 'SIGN OUT'}</span>
+              </button>
             </div>
 
             {/* Error & Success Feeds */}
@@ -1937,12 +2002,13 @@ export default function AdminPanelModal({
                 </div>
 
                 {/* Sub Tab Navigation across page structure nodes */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
                   {([
                     { id: 'hero', labelAr: 'الواجهة والترحيب', labelEn: 'Hero & Welcome' },
                     { id: 'usp', labelAr: 'مزايا وفارق المعمل', labelEn: 'Core Integrity USPs' },
                     { id: 'footer', labelAr: 'النشرة والفوتر', labelEn: 'Footer & Newsletter' },
-                    { id: 'testimonials', labelAr: 'مراجعات وآراء النخبة', labelEn: 'Vanguard Testimonials' }
+                    { id: 'testimonials', labelAr: 'مراجعات وآراء النخبة', labelEn: 'Vanguard Testimonials' },
+                    { id: 'userReviews', labelAr: 'إدارة تقييمات العملاء', labelEn: 'Moderate Client Reviews' }
                   ] as const).map((sec) => (
                     <button
                       key={sec.id}
@@ -2470,6 +2536,62 @@ export default function AdminPanelModal({
                         </div>
                       </div>
 
+                    </div>
+                  )}
+
+                  {/* USER CUSTOMER RATINGS MODERATION PANEL */}
+                  {editorSection === 'userReviews' && (
+                    <div className="space-y-4">
+                      <div className="space-y-1 pb-2 border-b border-neutral-850 dark:border-neutral-850">
+                        <h4 className="font-orbitron font-extrabold text-xs text-neon-pink uppercase tracking-widest">
+                          {editorLang === 'ar' ? 'لوحة إدارة ومراقبة مراجعات عملاء 4U PRO' : 'MODERATE CLIENT RATING LOGS'}
+                        </h4>
+                        <p className="text-[11px] text-neutral-400 font-sans">
+                          {editorLang === 'ar' 
+                            ? 'هنا يمكنك استعراض كافة المراجعات الحقيقية التي سجلها العملاء للصفحة والمنتجات وحذف المخالف منها فورا.' 
+                            : 'Review and moderate complete customer rating posts. Delete spam or invalid submissions instantly.'}
+                        </p>
+                      </div>
+
+                      <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                        {userReviewsList.length === 0 ? (
+                          <div className="p-8 text-center rounded-xl border border-dashed border-neutral-805 text-neutral-550 text-xs font-sans">
+                            {editorLang === 'ar' ? 'لا يوجد تقييمات عملاء مسجلة حالياً.' : 'No active client reviews listed.'}
+                          </div>
+                        ) : (
+                          userReviewsList.map((rev) => (
+                            <div key={rev.id} className="p-4 rounded-xl border border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900/60 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                              <div className="space-y-1.5 text-left rtl:text-right flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-xs text-white my-0.5">{rev.name}</span>
+                                  <span className={`text-[9px] font-mono uppercase bg-neutral-950 px-1.5 py-0.5 rounded font-bold border my-0.5 ${
+                                    rev.targetType === 'page' ? 'text-neon-cyan border-neon-cyan/20' : 'text-neon-pink border-neon-pink/20'
+                                  }`}>
+                                    {rev.targetName}
+                                  </span>
+                                  <span className="text-[10px] font-mono text-amber-500 font-bold my-0.5">
+                                    {'★'.repeat(rev.rating)} ({rev.rating}/5)
+                                  </span>
+                                </div>
+                                <p className="text-xs text-neutral-300 font-sans">
+                                  "{rev.comment}"
+                                </p>
+                                <span className="text-[9px] text-neutral-500 font-mono block mt-1">
+                                  {new Date(rev.timestamp).toLocaleString(editorLang === 'ar' ? 'ar-EG' : 'en-US')}
+                                </span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUserReview(rev.id)}
+                                className="py-1.5 px-3 rounded-xl border border-red-500/20 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/50 text-red-400 text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap cursor-pointer self-end sm:self-auto"
+                              >
+                                {editorLang === 'ar' ? 'حذف التقييم' : 'DELETE REVIEW'}
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
 

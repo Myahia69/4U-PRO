@@ -5,6 +5,7 @@ import BentoCategoryGrid from './components/BentoCategoryGrid';
 import TechInspector from './components/TechInspector';
 import ProDifference from './components/ProDifference';
 import TestimonialsSlider from './components/TestimonialsSlider';
+import ReviewRatingsSection from './components/ReviewRatingsSection';
 import Footer from './components/Footer';
 import ProductCustomizerModal from './components/ProductCustomizerModal';
 import AdminPanelModal from './components/AdminPanelModal';
@@ -166,6 +167,13 @@ export default function App() {
         <TestimonialsSlider
           isDarkMode={isDarkMode}
           lang={lang}
+        />
+
+        {/* Dynamic community page and product rating reviews */}
+        <ReviewRatingsSection
+          isDarkMode={isDarkMode}
+          lang={lang}
+          products={productsList}
         />
 
       </main>
