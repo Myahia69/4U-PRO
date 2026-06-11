@@ -101,10 +101,26 @@ export default function AdminPanelModal({
   const handlePrint = () => {
     if (!selectedOrder) return;
     
-    // Open in a new clean window to print beautifully
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(`
+    // Check if we can cleanly print via high-reliability hidden iframe protocol (perfectly bypasses browser sandbox popup blockers inside iframes!)
+    let iframe = document.getElementById('print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow || iframe.contentDocument;
+    if (doc) {
+      const iframeDoc = (iframe.contentWindow ? iframe.contentWindow.document : doc) as Document;
+      iframeDoc.open();
+      iframeDoc.write(`
         <html>
           <head>
             <title>Invoice - ${selectedOrder.id}</title>
@@ -141,7 +157,7 @@ export default function AdminPanelModal({
                 font-size: 11px;
                 line-height: 1.6;
                 margin-bottom: 15px;
-                border-b: 1px dashed #000;
+                border-bottom: 1px dashed #000;
                 padding-bottom: 10px;
               }
               .address-info {
@@ -186,7 +202,7 @@ export default function AdminPanelModal({
               }
             </style>
           </head>
-          <body onload="window.print(); window.close();">
+          <body>
             <div class="invoice-container">
               <div class="header">
                 <h1>4U PRO CORES LAB</h1>
@@ -223,28 +239,47 @@ export default function AdminPanelModal({
                 <tbody>
                   ${selectedOrder.items.map((item: any) => `
                     <tr>
-                      <td style="font-weight:bold;">${item.product.name}</td>
+                      <td style="font-weight:bold;">${item.product?.name || 'Item'}</td>
                       <td>${item.customSpec || 'STD'}</td>
                       <td>${item.selectedColor}</td>
-                      <td style="text-align:center;">${item.quantity}</td>
-                      <td style="text-align:${lang === 'ar' ? 'left' : 'right'};">${(item.product.price * item.quantity).toLocaleString()} ${selectedOrder.currency || 'EGP'}</td>
+                      <td style="text-align:center;">${item.quantity || 1}</td>
+                      <td style="text-align:${lang === 'ar' ? 'left' : 'right'};">${((item.product?.price || 0) * (item.quantity || 1)).toLocaleString()} ${selectedOrder.currency || 'EGP'}</td>
                     </tr>
                   `).join('')}
                 </tbody>
               </table>
               <div class="total-row">
                 ${lang === 'ar' ? 'الرصيد الإجمالي المستحق:' : 'GRAND TOTAL POOL BALANCE:'} 
-                <span style="font-size:16px;">${selectedOrder.totalPrice.toLocaleString()} ${selectedOrder.currency || 'EGP'}</span>
+                <span style="font-size:16px;">${Number(selectedOrder.totalPrice).toLocaleString()} ${selectedOrder.currency || 'EGP'}</span>
               </div>
               <div class="footer">
                 <p style="margin:2px 0;">THANK YOU FOR TRUSTING 4U CORES SYSTEM</p>
                 <p style="margin:2px 0; font-size: 8px; color: #555;">SIGNATURE SECURE NODE::AEROSYNC v9.27::PRO-CERTIFIED</p>
               </div>
             </div>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                }, 300);
+              };
+            </script>
           </body>
         </html>
       `);
-      win.document.close();
+      iframeDoc.close();
+      
+      // Print command stream
+      setTimeout(() => {
+        if (iframe.contentWindow) {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (err) {
+            console.error('Sandboxed iframe printing failed, trying standard open...', err);
+          }
+        }
+      }, 500);
     }
   };
 
