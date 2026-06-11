@@ -1,4 +1,9 @@
 import { Product, Testimonial } from './types';
+import compQuantumbookImg from './assets/images/cyberpunk_laptop_3d_1781152107551.png';
+import compDeskomegaImg from './assets/images/cyberpunk_desktop_3d_1781152123243.png';
+import phoneEnigmaImg from './assets/images/cyberpunk_phone_3d_1781150520556.png';
+import accHeadphoneImg from './assets/images/cyberpunk_headphones_3d_1781150538611.png';
+import accWatchImg from './assets/images/cyberpunk_watch_3d_1781150555203.png';
 
 export const products: Product[] = [
   {
@@ -9,7 +14,7 @@ export const products: Product[] = [
     description: 'Forged from monolithic carbon-titanium with cooling vent rings that pulse silently. Features dual mechanical keysets, Liquid Retina Neon-LED 180Hz panel, and the masterfully optimized 4U Neural Rig controller.',
     price: 2499,
     originalPrice: 2890,
-    image: '/src/assets/images/cyberpunk_laptop_3d_1781152107551.png',
+    image: compQuantumbookImg,
     specs: [
       { label: 'Processor', value: '4U Deca-Core Terabeat CPU' },
       { label: 'Memory', value: '128GB LPDDR6 Dual-Channel' },
@@ -39,7 +44,7 @@ export const products: Product[] = [
     description: 'A structural masterpiece designed for compiled computation, hyper-detailed rendering, and extreme multi-network management. Built with isolated heat zones and customizable front illumination vents.',
     price: 3899,
     originalPrice: 4200,
-    image: '/src/assets/images/cyberpunk_desktop_3d_1781152123243.png',
+    image: compDeskomegaImg,
     specs: [
       { label: 'Processor', value: '64-Core Sub-Acoustic Processor' },
       { label: 'Memory', value: '256GB Liquid-Mesh System RAM' },
@@ -68,7 +73,7 @@ export const products: Product[] = [
     description: 'Engineered with a liquid-graphene chassis, a holographic crystal display, and powered by our proprietary 4nm Nanotech AI Processor. Redefines extreme performance with silent cooling loops and lightwave sensors.',
     price: 1399,
     originalPrice: 1599,
-    image: '/src/assets/images/cyberpunk_phone_3d_1781150520556.png',
+    image: phoneEnigmaImg,
     specs: [
       { label: 'Processor', value: '4U Quantum AI Neural Engine' },
       { label: 'Display', value: '6.8" 165Hz Holographic OLED' },
@@ -98,7 +103,7 @@ export const products: Product[] = [
     description: 'Designed for extreme tech-enthusiasts, with deep carbon armor, a secure biometric neural core, and dual optical laser focus lenses. Capable of harsh-environment operation while retaining supreme minimalist aesthetic.',
     price: 1199,
     originalPrice: 1299,
-    image: '/src/assets/images/cyberpunk_phone_3d_1781150520556.png', // Fallback to same premium smartphone graphic or add styling
+    image: phoneEnigmaImg, // Fallback to same premium smartphone graphic or add styling
     specs: [
       { label: 'Processor', value: 'Titan Core Hybrid v9' },
       { label: 'Display', value: '6.7" Liquid Crystal Micro-LED' },
@@ -128,7 +133,7 @@ export const products: Product[] = [
     description: 'Hear sounds from the tomorrow. Incorporating physical sound-field isolation, adaptive digital audio shaping, and stunning neon pulse visual feedback grids integrated directly on the earcups.',
     price: 349,
     originalPrice: 399,
-    image: '/src/assets/images/cyberpunk_headphones_3d_1781150538611.png',
+    image: accHeadphoneImg,
     specs: [
       { label: 'Frequency', value: '4Hz - 48,000Hz Ultra Range' },
       { label: 'Isolation', value: '45dB Smart Neural Active Isolation' },
@@ -157,7 +162,7 @@ export const products: Product[] = [
     description: 'Active biological telemetry right on your wrist. Track your neural waves, custom blood oxygen metrics, and interact with widgets using a projecting holo-dial hovering just above the screen.',
     price: 279,
     originalPrice: 299,
-    image: '/src/assets/images/cyberpunk_watch_3d_1781150555203.png',
+    image: accWatchImg,
     specs: [
       { label: 'Sensor', value: 'Holo-Pulse Optical Bio-Telemetry' },
       { label: 'Projector', value: '0.9" Micro-Holo Jet Lens' },

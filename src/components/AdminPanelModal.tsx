@@ -7,13 +7,20 @@ import {
 import { Product } from '../types';
 import { Language } from '../translations';
 
+// Import image templates for production asset bundling
+import compQuantumbookImg from '../assets/images/cyberpunk_laptop_3d_1781152107551.png';
+import compDeskomegaImg from '../assets/images/cyberpunk_desktop_3d_1781152123243.png';
+import phoneEnigmaImg from '../assets/images/cyberpunk_phone_3d_1781150520556.png';
+import accWatchImg from '../assets/images/cyberpunk_watch_3d_1781150555203.png';
+import accHeadphoneImg from '../assets/images/cyberpunk_headphones_3d_1781150538611.png';
+
 // Beautiful templates for product images to help the user if they don't upload one
 const IMAGE_TEMPLATES = [
-  { name: 'Quantum Laptop', url: '/src/assets/images/cyberpunk_laptop_3d_1781152107551.png' },
-  { name: 'Server Tower', url: '/src/assets/images/cyberpunk_desktop_3d_1781152123243.png' },
-  { name: 'Enigma Phone', url: '/src/assets/images/cyberpunk_phone_3d_1781150520556.png' },
-  { name: 'Premium Watch', url: '/src/assets/images/cyberpunk_watch_3d_1781150555203.png' },
-  { name: 'Resonance buds', url: '/src/assets/images/cyberpunk_headphones_3d_1781150538611.png' }
+  { name: 'Quantum Laptop', url: compQuantumbookImg },
+  { name: 'Server Tower', url: compDeskomegaImg },
+  { name: 'Enigma Phone', url: phoneEnigmaImg },
+  { name: 'Premium Watch', url: accWatchImg },
+  { name: 'Resonance buds', url: accHeadphoneImg }
 ];
 
 interface AdminPanelModalProps {

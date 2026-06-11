@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Sparkles, Terminal, ShieldAlert, Cpu, Layers, Disc, CircleDot, Zap, ArrowDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translations, Language } from '../translations';
+import phoneEnigmaImg from '../assets/images/cyberpunk_phone_3d_1781150520556.png';
 
 interface HeroSectionProps {
   onOpenCustomizer: (prodId: string) => void;
@@ -314,7 +315,7 @@ export default function HeroSection({ onOpenCustomizer, isDarkMode, lang }: Hero
                 style={{ animationDuration: '8s' }}
               >
                 <img
-                  src="/src/assets/images/cyberpunk_phone_3d_1781150520556.png"
+                  src={phoneEnigmaImg}
                   alt="4U PRO X-Enigma Flagship Smart Device"
                   referrerPolicy="no-referrer"
                   className="w-full h-auto object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] filter contrast-105 saturate-110"
